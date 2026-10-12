@@ -316,6 +316,39 @@ test(
       assert.equal(counts.data.total,1);
       assert(counts.data.technologies.some((x:{name:string})=>x.name==="Next.js"));
     });
+    await t.test("raw source uploads, duplicate rejection, version links, download permissions and cleanup", async () => {
+      const upload=async (text:string,payload:Record<string,unknown>,presentation=false) => {
+        const data=new FormData();data.set("payload",JSON.stringify(payload));data.set("source",new File([text],"model.py"));
+        if(presentation)data.set("presentation",new File([Buffer.concat([Buffer.from("d0cf11e0a1b11ae1","hex"),Buffer.alloc(40)])],"slides.ppt"));
+        const request=new Request("http://localhost/api/projects",{method:"POST",headers:{Authorization:`Bearer ${s.idToken}`},body:data});const response=await handled(()=>dispatch(request,["projects"]));return {status:response.status,data:await response.json()};
+      };
+      const original={...input,title:"Baseline file model",abstract:"A baseline model detects recyclable waste from camera input.",description:"Python baseline for waste classification",status:"pending"};
+      const basic=await upload("print('basic model')",original,true);assert.equal(basic.status,201);
+      const before=(await db.collection("projects").count().get()).data().count;
+      const duplicate=await upload("print('basic model')",{...original,title:"Renamed identical project"});assert.equal(duplicate.status,409);
+      assert.equal((await db.collection("projects").count().get()).data().count,before);
+      const fileCount=(await db.collection("projectFiles").where("projectId","==",basic.data.id).get()).size;assert.equal(fileCount,2);
+      const get=async(token?:string)=>handled(()=>dispatch(new Request(`http://localhost/api/projects/${basic.data.id}/files/source`,{headers:token?{Authorization:`Bearer ${token}`}:{}}),["projects",basic.data.id,"files","source"]));
+      assert.equal((await get()).status,403);assert.equal((await get(other.idToken)).status,403);
+      const readable=await get(teacher.idToken);assert.equal(readable.status,200);assert.equal(await readable.text(),"print('basic model')");
+      assert.equal((await call(`projects/${basic.data.id}/review`,"POST",teacher.idToken,{decision:"approved",comments:"Source reviewed and baseline model approved.",revision:0})).status,200);
+      assert.equal((await get()).status,200);
+      const upgrade=await upload("print('advanced model with improved classifier')",{...original,title:"Advanced file model",baseProjectId:basic.data.id,improvements:"Adds an improved classifier with additional evaluation and new model capabilities."});assert.equal(upgrade.status,201);
+      assert.equal((await db.collection("projects").doc(basic.data.id).get()).data()?.title,original.title);
+      const internal=await call(`projects/${basic.data.id}/versions`,"GET",teacher.idToken);assert(internal.data.some((v:{id:string})=>v.id===upgrade.data.id));
+      const external=await call(`projects/${basic.data.id}/versions`);assert.equal(external.data.length,0);
+      assert.equal((await call(`projects/${upgrade.data.id}/review`,"POST",teacher.idToken,{decision:"approved",comments:"Improved source inspected and approved as a separate version.",revision:0})).status,200);
+      assert.equal((await call(`projects/${basic.data.id}/versions`)).data.length,1);
+      const draft=await upload("print('discarded draft')",{...original,title:"Temporary draft upload",status:"draft"});assert.equal(draft.status,201);
+      assert.equal((await call(`projects/${draft.data.id}`,"DELETE",s.idToken)).status,200);
+      assert((await db.collection("projectFiles").where("projectId","==",draft.data.id).get()).empty);
+      assert((await db.collection("projectFingerprints").where("projectId","==",draft.data.id).get()).empty);
+    });
+    await t.test("simultaneous identical submissions create exactly one project", async () => {
+      const payload={...input,title:"Concurrent save protection",abstract:"Identical concurrent submission checks are enforced atomically.",description:"A concurrency verification project.",status:"draft"};
+      const responses=await Promise.all([call("projects","POST",s.idToken,payload),call("projects","POST",s.idToken,payload)]);
+      assert.deepEqual(responses.map(r=>r.status).sort(),[201,409]);
+    });
     await t.test(
       "direct Firestore reads and writes are denied by rules",
       async () => {
@@ -401,6 +434,8 @@ test(
               .get()
           ).empty,
         );
+        assert((await db.collection("projectFiles").where("studentId","==",s.localId).get()).empty);
+        assert((await db.collection("projectFingerprints").where("studentId","==",s.localId).get()).empty);
         await assert.rejects(auth.getUser(s.localId));
         assert.equal((await call("me", "GET", s.idToken)).status, 401);
       },

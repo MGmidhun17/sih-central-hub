@@ -1,91 +1,40 @@
-# Skillpath-inspired HackRepo redesign
+# Update: consistent UI, source uploads, PowerPoint and versions
 
-This version changes the dashboard layout, navigation, typography, statistics, empty states and public landing style. It includes locally hosted Inter fonts and their OFL license. No external font request is required when a visitor opens the website.
+This update changes both frontend and backend. Replace the complete project contents, not just CSS. No new environment variables or Firebase Storage setup are required. Existing Vercel/Firebase credentials remain in their dashboards.
 
-## Update without terminal commands
+## Without terminal commands
 
-For the most reliable update, use GitHub Desktop and replace the contents of your existing repository with the complete contents of the ZIP's `hackrepo` folder, as explained below. Commit and push to the branch connected to Vercel; wait for Ready.
+1. Extract this ZIP.
+2. In GitHub Desktop, open the same repository connected to Vercel.
+3. Copy the CONTENTS of the extracted `hackrepo` folder into the repository folder beside `package.json`. Replace existing files. Include all new files under `src/lib/server`, the new `src/app/interface.css`, and existing `public/fonts` files.
+4. Review the changes, commit and Push origin. Do not include environment secrets, dependencies or build output.
+5. Wait for Vercel → Deployments → Ready for the new commit. Refresh the website.
 
-If the latest SIH version is already deployed and you prefer GitHub's browser editor, update all these files together:
+If you use GitHub's browser editor, preserve every file's exact relative path. This is a full application update, so copying only the stylesheet will not enable uploads or duplicate checks.
 
-- `src/app/layout.tsx`
-- `src/app/professional.css`
-- `src/app/page.tsx`
-- `src/components/ui.tsx`
-- `src/components/dashboard.tsx`
-- The entire `public/fonts` folder (three font files and `OFL.txt`).
+## What students can submit
 
-Use Add file → Upload files for the font files in `public/fonts`. Keep existing Firebase and Vercel environment variables. After the new deployment is Ready, refresh the website. If old styling remains, use Ctrl+Shift+R once.
+- Public GitHub repository: Import & analyze.
+- Source file or ZIP: choose Source file / ZIP, select a file, then Import & analyze files.
+- Optional PowerPoint: attach .pptx or .ppt below the project details; a shareable presentation link also remains supported.
+- Enter or correct the title, summary and methodology, then Save draft or Submit for review.
 
-The desktop workspace has a fixed sidebar and compact account/search top bar. On smaller screens the sidebar becomes a horizontal navigation strip. Teacher dashboards show actual pending and completed review counts, a useful next-step panel, and a compact empty queue. A clear queue means no pending submissions, not missing completed reviews; use My reviews or Explore approved projects.
+Each source/presentation file must be no larger than 1 MiB. ZIP limits: 500 entries, 8 MiB expanded total, 2 MiB per member. Remove dependency folders, build output and secrets. For larger projects use a GitHub repository and a presentation link.
 
-Browser visual QA was unavailable. The production build and TypeScript compilation are checked. Verify desktop and mobile layouts after deployment. No live deployment was modified here.
+PPTX slide text contributes to classification when saved and is readable on the details page. Both PPT/PPTX originals can be downloaded by permitted viewers. Legacy PPT text extraction is unsupported: use PPTX to analyze slide text. Files do not need to be uploaded again when editing text on an existing project.
 
-# Update your existing HackRepo deployment
+## Duplicates and advanced models
 
-This package contains the complete updated application. Your currently deployed Vercel site does not change until these files are committed to its connected GitHub repository and Vercel successfully deploys that commit.
+Exact source fingerprints, repeated GitHub repository revisions, and repeated manually entered details are blocked on the server. Renaming the title or ZIP alone cannot bypass source checks. Failed duplicate saves do not write projects or attachments. Similarity alone does not prove a duplicate; changed implementations remain subject to teacher review.
 
-## What changes
+For an advanced version, choose the checkbox, enter the approved original project's link/ID, and explain the improvements in at least 40 characters. Upload changed source or use an updated GitHub revision. The basic project stays unchanged. The original project page links to approved advanced versions.
 
-The interface follows the supplied blue/navy reference: dark landing hero, blue calls to action, white sign-in/sign-up cards, light dashboard panels, left navigation, cards and charts. Student and Teacher are the only signup roles. Admin remains the privately configured owner. The reference's Google/GitHub login buttons, bookmark/profile-view/shortlist metrics and decorative thumbnails have not been added as nonworking controls; only implemented actions and real counts are shown.
+## Verify after deployment
 
-Students open Submit Project, paste a public GitHub repository root URL, press Import & analyze, review the extracted title/summary/methodology/tags/domain/similarity results, and submit for teacher approval. A URL is enough to begin; no manual project description is needed when the repository has useful documentation. Sparse documentation produces a limited draft which the student should correct.
+1. Student: upload a small source file/ZIP and submit; teacher: open, download and review it.
+2. Submit identical source again with a new title: expect a duplicate error and no extra project.
+3. Approve the original, then submit changed code as an advanced version. Approve it and confirm both versions remain visible.
+4. Attach a PPTX and confirm slide text and download work. Save a project without any presentation and confirm it succeeds.
+5. Check the same pages at desktop and mobile widths. Body text is 16px, controls/labels 14px, secondary text 13px; important text uses darker contrasting colors.
 
-## Replace files without terminal commands
-
-Preferred for avoiding failed folder uploads:
-
-1. Open GitHub Desktop and sign into the account owning your existing repository.
-2. File → Clone repository → URL → enter the SAME repository connected to your Vercel project. Choose a new local folder.
-3. Extract this ZIP. Copy the CONTENTS of its `hackrepo` folder into the cloned repository folder beside the existing `package.json`. Replace the existing source files. Do not create an extra `hackrepo/hackrepo` or `src/src` level.
-4. GitHub Desktop will list the changes. Review them; do not include `.env.local`, service-account JSON, `node_modules` or `.next`.
-5. Commit to the production branch (usually `main`), then Push origin.
-6. Open Vercel → the existing project → Deployments. Confirm the new commit builds and reaches Ready. If automatic deployment is unavailable, import/deploy the existing repository through the Vercel dashboard.
-
-Browser-only alternative: create/replace each file at its exact path using GitHub's editor. Folder uploads can fail, as in your earlier screenshots. At the repository root, use Add file → Create new file and type a complete path such as `src/app/api/[...path]/route.ts`; paste its local contents. If a file exists, open it and use the edit button instead. Do not rename bracket folders or flatten `page.tsx` files into one directory. The new build check lists missing route files explicitly.
-
-## Keep your existing Vercel configuration
-
-- Framework: Next.js. Root directory: the folder containing `package.json`. Build: `npm run build`. Install: `npm ci`.
-- Keep the four `NEXT_PUBLIC_FIREBASE_*` variables, Firebase Admin credentials and `ADMIN_UID` in the Production environment.
-- Keep `GEMINI_API_KEY` and `GEMINI_MODEL` to enable AI summaries/domain classification. Confirm your selected model is available to your key. The fallback is extraction, not semantic AI.
-- Optional new setting: `GITHUB_TOKEN`, server-only, for public GitHub API rate limits. Do not share this token or include it in the source.
-- `AI_USER_DAILY_LIMIT` and `AI_GLOBAL_DAILY_LIMIT` apply jointly to new text analyses and imports. Defaults are 10/user/day and 100/day globally. These are not provider billing limits.
-- Leave local emulator host variables unset on Vercel. Never paste `.env` quotes around the entire private key value in a Vercel field; supply the key itself, using real newlines or literal `\n` escapes as supported by the code.
-- Redeploy after environment changes, especially `NEXT_PUBLIC_*` settings.
-
-## Firebase setup still required
-
-Enable Email/Password sign-in, create the default Firestore database, and deploy the included deny-all direct-client Firestore rules. Your server service account performs database access after verifying the caller. Keep admin role setup from the original README. Adding ADMIN_UID alone does not create the admin profile or role.
-
-## Browser acceptance walkthrough
-
-1. Visit `/login`, `/register`, `/projects`, `/domains`, and `/analytics`. None should return the app's not-found page.
-2. Sign into a Student account. Open `/projects/new`.
-3. Paste YOUR public project URL, e.g. `https://github.com/your-account/your-project` (replace the placeholders).
-4. Press Import & analyze. Verify fields populate. Open View evidence & limitations and compare the listed files/revision with GitHub. For Gemini results, confirm the method label says AI-generated summary / Gemini + dictionary. Otherwise read the visible fallback notice.
-5. Correct any unsupported claims, then Submit for review. Confirm it appears in the student's dashboard but not public search yet.
-6. Sign into an approved Teacher account; review and approve. Confirm the project is now searchable and included in analytics.
-7. Import the same public URL again. If the prior submission is in the compared set (up to 200 approved projects), an exact-repository warning should appear. Similarity scores are text overlap, not plagiarism verdicts.
-8. Search for a tag alias such as `nextjs`. Confirm domain/technology filters and relevance sorting behave as expected.
-9. Repeat on mobile. Confirm navigation, forms, project cards and charts remain usable.
-
-## Known scope
-
-Only public GitHub repository root URLs are accepted. GitHub API metadata plus up to seven eligible README/dependency files are inspected. Files above 60 KB are skipped; each selected file contributes at most 14,000 characters. Inspection is pinned to the default branch commit; aggregate language counts may reflect GitHub's current default-branch indexing. No code is run. Returned HTML is never rendered. No repository images are fetched.
-
-Search is a bounded ranked keyword/alias system, not an embedding-based semantic engine. Search and approved analytics scan up to 500 projects; similarity compares up to 200 approved projects. Existing records are preserved. Legacy domain labels are mapped to the current taxonomy on read; re-analyze to refresh AI suggestions.
-
-## Verification of this delivery
-
-See `docs/verification.md`. Local build/test success does not verify your live Firebase/GitHub/Gemini access, model quota or Vercel environment. This package does not include account secrets or a live deployment.
-
-## Changes in this package
-
-Browser-only accounts, role shortcuts, artificial project data and sample seeding have been removed. The app always uses Firebase. Previously browser-only submissions were never stored in Firebase; submit the repository again using a registered student account.
-
-After replacing files, delete `src/lib/demo.ts` and `scripts/seed.ts` from the old GitHub checkout if present (replacement copies do not delete old files). The updated package does not use either file. If you previously ran a database seed script, existing seeded Firestore documents are not automatically deleted: review and remove only your known artificial records in Firebase.
-
-Owner: approve the Teacher account in Admin → Teachers. Teacher: select Check approval status, then Review queue → Refresh submissions. Student: use Submit for review, not just Save draft. Both accounts must use this same deployment/Firebase project.
-
-The domain selector includes all 17 requested SIH categories. Technologies are grouped separately into Frontend, Backend, Programming Languages, Database, AI/ML, NLP, IoT/Embedded, Cloud/Deployment, Mobile, DevOps/Infrastructure, Testing, Blockchain/Security and Version Control.
+The local Firebase emulator suite and production build were tested. Your live deployment and browser rendering were not modified or verified here. See `docs/verification.md` for exact checks and limits.

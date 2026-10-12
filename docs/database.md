@@ -22,3 +22,8 @@ All writes are server-side. Firestore rules deny client SDK/REST access, even to
 Old AI usage/cache documents can be removed manually using a trusted maintenance environment. Automatic TTL is not configured because enabling additional provider features can change pricing requirements. Cache and usage cleanup is included in account deletion.
 
 `deletedUsers/{uid}` retains a minimal `{ deletedAt }` tombstone after account deletion to prevent registration races from resurrecting a deleted profile. It is not exposed by any API.
+
+| projectFiles | projectId_kind_chunk | projectId, studentId, binary bytes (512 KiB chunks) |
+| projectFingerprints | hash identity | projectId, studentId, createdAt |
+
+Projects now optionally include sourceFile/presentationFile metadata, sourceFingerprint, repoRevision, duplicateKeys, baseProjectId/baseProjectTitle and improvements. New file blobs and uniqueness claims are written atomically with project saves.

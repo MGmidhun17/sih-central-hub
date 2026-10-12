@@ -1,4 +1,4 @@
-# HackRepo — GitHub-first edition
+# HackRepo — source uploads and linked versions
 
 **SIH Aligned Dynamic Student Hackathon Project Repository with Automated Technology Stack Taxonomy Tagging**
 
@@ -109,7 +109,7 @@ Create an API key in https://aistudio.google.com/ and confirm which models and f
 
 Without both values, analysis uses its dictionary and keyword fallback. Quota failures, timeouts and malformed responses also fall back with a visible explanation.
 
-Students can paste only a public GitHub repository root URL and press **Import & analyze**. The authenticated server reads GitHub metadata, language totals, the default branch commit, its file tree and up to seven README/dependency files at that exact commit. No repository code or install scripts are executed. When Gemini is configured, this bounded evidence is sent to Gemini to draft the title, abstract, methodology, domain and keywords. Canonical technology tags come from inspected evidence. Generated details are editable and do not claim ownership or verification of code quality. Students must review and submit; teachers decide publication.
+For GitHub imports, students can paste a public repository root URL and press **Import & analyze**. The authenticated server reads GitHub metadata, language totals, the default branch commit, its file tree and up to seven README/dependency files at that exact commit. No repository code or install scripts are executed. When Gemini is configured, this bounded evidence is sent to Gemini to draft the title, abstract, methodology, domain and keywords. Canonical technology tags come from inspected evidence. Generated details are editable and do not claim ownership or verification of code quality. Students must review and submit; teachers decide publication.
 
 If Gemini is unavailable, repository excerpts and dependency extraction still populate the form with an explicit fallback label. Private, missing, empty or inaccessible repositories produce actionable errors. Metadata, file-size, time and request limits bound this academic prototype; this is not a full source-code audit. Presentation and video links are stored without being fetched.
 
@@ -220,3 +220,17 @@ No browser screenshots are included in this delivery. After configuring and runn
 The app uses exactly 17 SIH domains from the supplied requirements; AI/ML and IoT are technology categories, not SIH domains. See `src/lib/taxonomy.ts`. Projects with no specific keyword match receive provisional Miscellaneous. Existing legacy categories are mapped on read; ambiguous old categories are classified from project text. Cached analysis keys include the taxonomy version. Re-analyze existing projects for fresh AI results.
 
 Teachers require owner approval. Submitted (pending) projects appear in the teacher review queue; drafts remain private. The queue refreshes when the tab regains focus and has a Refresh submissions button. The account approval screen has Check approval status.
+
+## Source files, PowerPoint and duplicate prevention
+
+Students may import a public GitHub repository, upload one UTF-8 source file, or upload a ZIP of source files. A presentation is optional. Each uploaded source or presentation file is limited to 1 MiB; combined multipart requests are bounded before parsing. ZIP files may contain at most 500 entries and expand to at most 8 MiB total / 2 MiB per member. Dependencies/build folders are not analyzed. Remove secrets/environment/key files before uploading.
+
+PPTX slide text (up to 60 slides / 16,000 characters) contributes to classification and can be read on the project page. Legacy PPT files are stored for download; save as PPTX for text extraction. Source excerpts inspect up to 20 files / 32,000 characters. Files are not executed. File-based saves explicitly label dictionary classification; the Import & analyze action uses Gemini when configured, with a labelled extraction fallback.
+
+Files are stored as 512 KiB binary chunks in Firestore `projectFiles`, atomically with the project. Firebase Storage is not required. They consume Firestore storage/write/read quotas. Public downloads are available only after project approval; before approval the same project-read permissions govern downloads. The API forces downloads with attachment headers and does not execute uploaded content. User/draft deletion also removes file chunks and uniqueness records.
+
+`projectFingerprints` provides atomic duplicate blocking, including concurrent submissions. Identical code is detected despite renamed ZIP roots or different ZIP compression, and Markdown/README changes alone do not make unchanged code new. Identical canonical GitHub repository+commit pairs are rejected. Manual submissions with identical normalized abstract/methodology/improvement text are rejected, even with a renamed title. A rejected save creates neither a project nor file chunks. Already-existing GitHub records with matching revision evidence are checked, but old file-less records cannot be retrospectively fingerprinted.
+
+Similarity is still a warning, not proof of duplication. Rewritten copies, mirrored repositories, novel-looking descriptions and semantic equivalence are not reliably detected. Changes to actual source receive a different fingerprint and remain subject to teacher review.
+
+To submit an advanced model, select “advanced version,” enter the approved original project's link/ID, describe improvements (at least 40 characters), and submit changed source. Both records remain separate and become public after their own teacher approval. Original pages show approved advanced versions; private versions are filtered by access permissions. No automatic claim of superior performance is made.
