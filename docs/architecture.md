@@ -19,12 +19,12 @@ Registration creates the Firebase identity first, then an idempotent server-side
 
 ## Routes
 
-Public: `/`, `/login`, `/register`, `/projects`, `/projects/[id]`, `/domains`.
+Public: `/`, `/login`, `/register`, `/projects`, `/projects/[id]`, `/domains`, `/analytics`.
 Student: `/dashboard/student`, `/projects/new`, `/projects/[id]/edit`.
 Teacher: `/dashboard/teacher`, `/dashboard/teacher/reviews`, `/dashboard/teacher/projects/[id]`.
 Admin: `/dashboard/admin`, `/dashboard/admin/users/[uid]`.
 
-API: `POST auth/register`, `GET me`, `GET/POST projects`, `GET/PATCH/DELETE projects/:id`, `POST projects/:id/review`, `GET reviews`, `POST ai/analyze`, `GET admin/stats`, `GET admin/users`, `GET/DELETE admin/users/:uid`, `PATCH admin/teachers/:uid` (all under `/api/`).
+API: `POST auth/register`, `GET me`, `GET/POST projects`, `GET/PATCH/DELETE projects/:id`, `POST projects/:id/review`, `GET reviews`, `POST ai/analyze`, `POST ai/import-repository`, `GET projects/search`, `GET analytics`, `GET admin/stats`, `GET admin/users`, `GET/DELETE admin/users/:uid`, `PATCH admin/teachers/:uid` (all under `/api/`).
 
 ## Demo isolation
 

@@ -1,8 +1,18 @@
-# HackRepo
+# HackRepo — GitHub-first edition
 
 **SIH Aligned Dynamic Student Hackathon Project Repository with Automated Technology Stack Taxonomy Tagging**
 
 A Next.js + TypeScript application for student project submissions, controlled technology tagging, related-project discovery, teacher review, and single-owner administration. Firebase Authentication handles identities, Cloud Firestore stores records, and the application is prepared for Vercel deployment.
+
+## New in this edition
+
+- Navy hero, bright-blue actions, white auth cards, compact role dashboards and responsive layouts based on the supplied 11-screen reference.
+- GitHub URL-first submission: read public repo metadata, README, languages and dependency manifests; generate editable title/abstract/methodology; normalize tags; classify SIH domain; compare approved work.
+- Ranked server-side keyword search with technology aliases, related terms and domain/technology filters.
+- `/analytics`: approved project, contributor and institution counts; domain distribution; technology usage; monthly creation charts.
+- Complete route check before builds so a partial upload fails clearly instead of silently deploying missing login pages.
+
+For an existing Vercel installation, start with **`UPDATE_GUIDE.md`**. This source package does not update your deployed website automatically.
 
 ## What is included
 
@@ -100,9 +110,15 @@ Create an API key in https://aistudio.google.com/ and confirm which models and f
 
 Without both values, analysis uses its dictionary and keyword fallback. Quota failures, timeouts and malformed responses also fall back with a visible explanation. No credentials or successful live Gemini call are implied by the demo.
 
-The UI sends title, abstract, description and resource URLs to the analysis endpoint. That content is sent to Gemini only when configured and the user presses Analyze. The app does not fetch linked GitHub/Drive/video files. Be sure the submitted text may be shared with the configured provider.
+Students can paste only a public GitHub repository root URL and press **Import & analyze**. The authenticated server reads GitHub metadata, language totals, the default branch commit, its file tree and up to seven README/dependency files at that exact commit. No repository code or install scripts are executed. When Gemini is configured, this bounded evidence is sent to Gemini to draft the title, abstract, methodology, domain and keywords. Canonical technology tags come from inspected evidence. Generated details are editable and do not claim ownership or verification of code quality. Students must review and submit; teachers decide publication.
 
-Analysis is cached by user + content hash. To deliberately rerun the same text after changing provider configuration, remove the matching `analysisCache` document using the trusted Firebase console, then analyze again. Editing title, abstract or description automatically changes the cache key.
+If Gemini is unavailable, repository excerpts and dependency extraction still populate the form with an explicit fallback label. Private, missing, empty or inaccessible repositories produce actionable errors. Metadata, file-size, time and request limits bound this academic prototype; this is not a full source-code audit. Presentation and video links are stored without being fetched.
+
+Optionally set `GITHUB_TOKEN` as a server-only Vercel variable to raise the public GitHub API rate limit. Use minimum access appropriate for public repository reads. Never prefix it with `NEXT_PUBLIC_`. Import remains public-only even if a token can access private repositories. GitHub credentials are sent only to the fixed `api.github.com` endpoint. The app does not follow returned download URLs or redirects.
+
+Manual editing and text analysis remain available. Imported analysis is cached for saving against the generated content and repository URL. A fresh Import deliberately reads the repository again and consumes one shared daily analysis quota slot.
+
+Analysis is cached by user + content hash. To deliberately rerun the same text after changing provider configuration, remove the matching `analysisCache` document using the trusted Firebase console, then analyze again. Editing title, abstract, description or GitHub URL automatically changes the cache key. Presentation/demo links do not invalidate classification.
 
 ## 5. Deploy on Vercel
 
@@ -160,7 +176,8 @@ flowchart TD
   UI["Next.js interface"] --> Auth["Firebase Authentication"]
   UI --> API["Verified Node.js API"]
   API --> DB["Cloud Firestore"]
-  API --> AI["Dictionary and optional Gemini"]
+  API --> GH["Public GitHub evidence"]
+  GH --> AI["Dictionary and optional Gemini"]
   API --> Similarity["Lexical similarity"]
   AI --> DB
 ```
@@ -184,7 +201,7 @@ All database access passes through server routes. Browsers do not use Firestore 
 This is a small, non-commercial academic prototype, not an unlimited free production service. Firestore has finite daily quotas, Vercel Hobby has usage and personal/non-commercial restrictions, and Gemini quotas vary by model/account. The application does not enable billing or guarantee a provider's future pricing.
 
 - External resource links avoid large file-storage costs; no Cloud Storage upload or paid search service is introduced.
-- Public/user project lists and admin users load 100 records per page. Search/filtering applies to the loaded collection; the interface explains this. Load further pages to broaden results.
+- Public smart search scans up to 500 approved projects and returns the top 100 ranked matches. The UI indicates truncation. Analytics uses the same 500-record scope. Personal/admin lists still use 100-record pagination.
 - Similarity examines at most 200 approved records. Teacher history, per-project review history and admin details have explicit display bounds. These are documented prototype limits, not invisible completeness claims.
 - Admin totals use Firestore aggregation queries. Per-user counts add reads proportional to a page of users. Avoid repeated refreshes at large scale.
 - AI caps default to 10 new analyses/user/day and 100 globally/day. The counters are shared in Firestore. They are application limits, not billing caps, and may exceed a provider's actual free quota; reduce them as needed.
@@ -204,7 +221,7 @@ Official references checked while preparing the project:
 
 Implemented: central repository, student submission, taxonomy normalization, optional Gemini classification, lexical related-project discovery, teacher review, search/filtering and owner management. SIH alignment means the project's maintained categories, not official SIH affiliation.
 
-Future/optional: genuine Sentence-BERT embeddings, FAISS with durable indexing and a suitable Python host, spaCy/custom NER, server-side full-text search, large-scale counters, recommendation ranking, institutional SSO, and repository-wide semantic evaluation. None is claimed to be running in this version.
+Future/optional: genuine Sentence-BERT embeddings, FAISS with durable indexing and a suitable Python host, spaCy/custom NER, an indexed search service beyond the bounded keyword ranker, large-scale counters, recommendation ranking, institutional SSO, and repository-wide semantic evaluation. None is claimed to be running in this version.
 
 ## Screenshots
 

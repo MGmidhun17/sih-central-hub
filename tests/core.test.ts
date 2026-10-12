@@ -168,11 +168,12 @@ test("review and Gemini validation reject invalid decisions and confidence", () 
     }).success,
   );
 });
-test("analysis cache invalidates content changes but ignores resource links", () => {
+test("analysis cache invalidates content and repository changes but ignores presentation links", () => {
   assert.notEqual(
     contentHash(valid),
     contentHash({ ...valid, description: "Different" }),
   );
+  assert.notEqual(contentHash(valid), contentHash({ ...valid, githubUrl: "https://github.com/student/new-repo" }));
   assert.equal(
     contentHash(valid),
     contentHash({ ...valid, demoUrl: "https://example.com/demo" }),

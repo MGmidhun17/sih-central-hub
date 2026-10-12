@@ -5,8 +5,8 @@
 - Teacher: role must be `teacher` and approved true. Review transactions re-read the profile to prevent a revoked approval from succeeding on a stale check.
 - Student: owner-only editable projects. Protected AI, identity and review fields cannot be supplied through schemas. Students cannot mark projects approved.
 - Firestore rules: deny all direct client access. Every supported database operation goes through verified server handlers. Admin SDK bypasses rules and therefore requires its own policy tests.
-- Input: strict Zod objects, text limits, HTTPS-only external links, no URL credentials. Linked content is not fetched, so user links do not create a server-side request proxy. React escapes text output; no raw HTML rendering is used.
-- Secrets: Admin key and Gemini key are server environment variables, never public variables. Emulators are rejected when `NODE_ENV=production`.
+- Input: strict Zod objects, text limits, HTTPS-only external links, no URL credentials. Repository import accepts only public GitHub repository-root URLs. Requests go to the fixed api.github.com host; returned download URLs, redirects, symlinks and code execution are rejected. Files, response bytes, request time and daily quota are bounded. Presentation/video links are not fetched. React escapes text output; no raw HTML rendering is used.
+- Secrets: Admin key, GitHub token and Gemini key are server environment variables, never public variables. Emulators are rejected when `NODE_ENV=production`.
 - Errors: expected validation/auth/state failures are explicit; internal/provider details and credentials are not returned to browsers.
 - Model output: untrusted and schema-checked. The model cannot approve projects or grant roles. Prompts instruct it to treat project descriptions as data.
 - Browser demo: not an authorization mechanism, never grants live access.

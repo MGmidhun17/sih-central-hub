@@ -1,21 +1,20 @@
-# Verification record
+# Verification record — GitHub-first update
 
-Prepared 11 October 2026. Tests used throwaway local Firebase emulator accounts, not a real Firebase project.
+Prepared 12 October 2026.
 
 | Check | Result |
 | --- | --- |
-| ESLint | Passed, no warnings or errors |
-| TypeScript strict checking | Passed |
-| Unit tests | 14 passed |
-| Full unit + Firebase emulator integration run | 30 tests passed, zero failures, zero skips |
-| Production Next.js build | Passed |
-| Browser visual/responsive/keyboard QA | Not performed: supported browser control unavailable in this environment |
-| Live Firebase project | Not configured or verified |
-| Live Gemini request | Not configured or verified; dictionary fallback tested |
-| Vercel deployment | Not performed; account configuration required |
+| Strict TypeScript / Next.js production build | Passed |
+| ESLint | Passed without warnings |
+| Required application route files | All 20 present; build guard included |
+| Unit and mocked-provider tests | 25 passed, zero failures |
+| Firebase emulator integration suite | Skipped in this update: emulator service not configured |
+| GitHub/Gemini live provider calls | Not verified; deterministic mocked responses tested |
+| Browser visual, responsive and keyboard QA | Not performed: supported browser-control capability unavailable |
+| Existing Vercel deployment | Not modified or verified |
 
-The combined count includes the integration parent test plus 15 nested workflow/security tests. Integration tests exercise the real API dispatcher, Firebase Admin SDK, Authentication emulator and Firestore emulator. They do not drive a web browser.
+The production build includes /login, /register, /projects, /projects/new, /analytics, /domains, all role dashboards/detail routes and the dynamic /api/[...path] handler. It verifies compilation and static rendering, not live service credentials or browser interactions.
 
-Verified integration behaviors: student/teacher registration, rejecting public admin registration, unauthorized admin denial, teacher approval gate, private draft access, protected-field injection denial, analysis caching and method labels, ownership restrictions, submission, change requests, revision conflicts, approval and public discovery, hidden internal reviews, deny-all direct database rules, owner deletion protection, aggregate stats, daily analysis caps, deletion tombstones and cascading removal.
+New tests cover repository URL allowlisting and credential/SSRF restrictions, symlink/file-size/directory exclusions, package alias detection, revision-pinned reads, never following download URLs, private repositories, rate limits, missing README/failing optional files, valid extraction fallback, Gemini response validation and evidence-only technology tags, ranked alias search, aggregation and similarity boilerplate removal. Existing tests cover ownership, admin UID checks, role restrictions, input validation, technology normalization, lexical similarity and cache invalidation.
 
-Next.js successfully pre-rendered its static pages during the build. That verifies compilation and server rendering, not visual layout or all interactive browser behavior. Follow the production and mobile walkthrough in deployment.md after configuring your own accounts.
+The prior 11 October package recorded a 30-test Firebase emulator run. That historical result is not a claim that the newly added import/search/analytics endpoints have been exercised against Firebase in this update. The full integration suite remains included for CI/local execution, with new endpoint checks.

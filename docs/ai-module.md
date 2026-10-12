@@ -1,18 +1,15 @@
-# Analysis and similarity
+# GitHub-first analysis
 
-1. The student explicitly requests analysis; renders and page loads do not trigger it.
-2. The server validates text, caller role and optional project ownership.
-3. A SHA-256 hash over title/abstract/description selects a user-specific cache record. Resource URL changes do not invalidate semantic content analysis.
-4. A new analysis reserves user and global UTC-day allowance in one transaction. Failed provider attempts consume the reservation; they do not retry automatically and multiply costs.
-5. A dictionary recognizes canonical technologies and aliases with token boundaries. Unknown model-generated names are discarded, aliases canonicalized, duplicate tags removed, and categories assigned by the controlled taxonomy.
-6. With a configured key/model, Gemini receives a constrained extraction/classification prompt and a JSON response schema. Zod validates the resulting JSON and the domain must be in the controlled list. Confidence is explicitly an uncalibrated model estimate.
-7. On missing configuration, malformed response, timeout or provider failure, dictionary and domain-keyword fallback is returned with its actual method. It is never labeled as a successful Gemini analysis.
-8. Similarity is recalculated against a bounded collection of approved projects, then the server stores the final report under the content hash. Editing input clears the browser's visible analysis; saving different content cannot reuse the previous hash.
+POST `/api/ai/import-repository` requires a verified, active Student profile. The JSON body contains only `githubUrl` and optional `excludeProjectId` belonging to that student. Every field is validated. The server normalizes an HTTPS github.com repository-root URL and never directly fetches arbitrary submitted URLs.
 
-## Actual similarity algorithm
+A transaction consumes one shared daily analysis slot before external requests. The fixed GitHub REST host supplies metadata, default-branch commit, language counts, recursive tree and selected README/dependency files. Private repositories, rate-limited responses and empty default branches return explicit errors. Redirects, symlinks and dependency/build directories are not followed. Maximum seven files, 60 KB/file, 14,000 input characters/file and a 15-second GitHub request budget. Response bodies have byte limits. No archive is cloned; code and installation scripts never execute.
 
-`SimilarityService` exposes `compare(text, projects)`. `LexicalSimilarityService` tokenizes lowercase alphanumeric words, removes a short stopword list, builds corpus document frequencies, computes log-scaled term frequency × smoothed inverse document frequency, and calculates cosine similarity. Scores are bounded to [0,1]. It returns up to five results above 0.05 from at most 200 approved candidate projects.
+Dependency names are mapped to controlled technology names (next → Next.js, torch → PyTorch, @google/genai → Gemini). README/language evidence supplements this map. A configured Gemini model receives bounded repository evidence as untrusted data and returns a validated JSON draft and domain/keywords. It is instructed to distinguish planned functionality from implemented claims. Unavailable or invalid Gemini output uses an explicitly labelled repository-extract fallback. Neither method proves correctness, authorship or completeness.
 
-Displayed low/moderate/high labels use <60%, 60–79%, and >=80% lexical scores. These thresholds are illustrative and not calibrated plagiarism thresholds. Vocabulary paraphrases may be missed; unrelated projects sharing terminology may appear similar. A percentage represents vector similarity, not a percentage of copied content.
+The student reviews generated fields. The resulting analysis records canonical tags/categories, domain/reason/confidence, source URL, snapshot SHA, inspected files, languages, warnings and summary method. A server-owned analysisCache entry is keyed by user and content hash including GitHub URL. Save endpoints retrieve that record rather than trusting client-supplied analysis. Editing content or repository URL invalidates it. Text-only analysis remains available; exact unchanged analyzed content may reuse the cache.
 
-Sentence-BERT and FAISS are extension targets, not installed services. A future semantic service can replace the implementation behind the abstraction while keeping the response shape, but it needs a suitable embedding runtime, model license review, persistence, reindexing and evaluation.
+Similarity uses TF-IDF cosine scores against up to 200 approved records; common appended evidence boilerplate is excluded. Import also warns if the canonical repository URL matches an existing compared record. Comparisons are not plagiarism verdicts. No Sentence-BERT, spaCy or FAISS runtime is claimed.
+
+Public search ranks title, tag, domain, abstract, description and stored keyword matches, with aliases and a small related-term dictionary. It requires every meaningful query term to match, scans up to 500 approved projects, and returns the top 100. It is not embedding-based semantic search. Analytics aggregates the same approved scope. Public responses remove internal analysis details.
+
+The request limits are shared between imports and new text analyses, in Firestore aiUsage. They control application calls, not provider billing. Public search and analytics can still consume database quota; a large public deployment should use cached aggregates and an indexed search service.

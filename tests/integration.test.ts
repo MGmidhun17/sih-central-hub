@@ -94,6 +94,39 @@ test(
         200,
       );
     });
+    await t.test("repository import enforces student access and URL validation", async () => {
+      const payload = { githubUrl: "https://github.com/example/project" };
+      assert.equal((await call("ai/import-repository", "POST", undefined, payload)).status, 401);
+      assert.equal((await call("ai/import-repository", "POST", teacher.idToken, payload)).status, 403);
+      assert.equal((await call("ai/import-repository", "POST", s.idToken, { githubUrl: "https://127.0.0.1/private" })).status, 400);
+    });
+    await t.test("repository extraction survives save and stays private before approval", async () => {
+      const originalFetch = globalThis.fetch;
+      const sha = "a".repeat(40);
+      globalThis.fetch = (async (url: string | URL | Request, options?: RequestInit) => {
+        const u = String(url);
+        if (!u.startsWith("https://api.github.com/")) return originalFetch(url, options);
+        if (u.endsWith("/project")) return Response.json({name:"Learning project",description:"A learning tool for student classroom practice.",private:false,default_branch:"main"});
+        if (u.includes("/commits/")) return Response.json({sha});
+        if (u.endsWith("/languages")) return Response.json({TypeScript:500});
+        if (u.includes("/git/trees/")) return Response.json({tree:[{path:"README.md",size:100,type:"blob",mode:"100644"}],truncated:false});
+        return Response.json({type:"file",size:100,encoding:"base64",content:Buffer.from("A React and Firebase learning tool for student classroom practice.").toString("base64")});
+      }) as typeof fetch;
+      try {
+        const imported = await call("ai/import-repository", "POST", s.idToken, {githubUrl:"https://github.com/example/project"});
+        assert.equal(imported.status,200);
+        assert.equal(imported.data.analysis.repository.commit,sha);
+        const saved = await call("projects", "POST", s.idToken, {...imported.data.project,status:"draft"});
+        assert.equal(saved.status,201);
+        assert.equal(saved.data.analysis.repository.commit,sha);
+        const search = await call("projects/search?q=learning");
+        assert.equal(search.status,200);
+        assert(!search.data.items.some((p:{id:string})=>p.id===saved.data.id));
+        const counts = await call("analytics");
+        assert.equal(counts.status,200);
+        assert.equal(counts.data.total,0);
+      } finally {globalThis.fetch=originalFetch;}
+    });
     const input = {
       title: "Campus recycling vision",
       abstract:
@@ -263,6 +296,16 @@ test(
         );
       },
     );
+    await t.test("approved work is ranked in search and counted in analytics", async () => {
+      const search=await call("projects/search?q=nextjs");
+      assert.equal(search.status,200);
+      assert(search.data.items.some((p:{id:string})=>p.id===id));
+      assert(search.data.items.every((p:{analysis:unknown})=>p.analysis===null));
+      const counts=await call("analytics");
+      assert.equal(counts.status,200);
+      assert.equal(counts.data.total,1);
+      assert(counts.data.technologies.some((x:{name:string})=>x.name==="Next.js"));
+    });
     await t.test(
       "direct Firestore reads and writes are denied by rules",
       async () => {
