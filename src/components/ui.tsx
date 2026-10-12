@@ -22,6 +22,7 @@ import {
   Radio,
   Trees,
   Lightbulb,
+  BarChart3,
 } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
 import { useApp } from "./provider";
@@ -43,7 +44,7 @@ export function Logo() {
         <BookOpen size={19} />
       </span>
       Hack<span>Repo</span>
-      <small>PROJECT LIBRARY</small>
+      <small>STUDENT INNOVATION HUB</small>
     </Link>
   );
 }
@@ -74,6 +75,7 @@ export function Header() {
             >
               SIH domains
             </Link>
+            <Link href="/analytics" onClick={() => setOpen(false)}>Analytics</Link>
             <Link href="/#how-it-works" onClick={() => setOpen(false)}>
               How it works
             </Link>
@@ -101,7 +103,7 @@ export function Header() {
                   Log in
                 </Link>
                 <Link className="button small" href="/register">
-                  Get started <ArrowRight size={15} />
+                  Sign up <ArrowRight size={15} />
                 </Link>
               </>
             )}
@@ -323,22 +325,25 @@ export function Workspace({
           [base, "Overview", LayoutDashboard],
           ["/projects/new", "Submit project", Plus],
           ["/projects", "Explore projects", FolderOpen],
+          ["/analytics", "Analytics", BarChart3],
         ] as const)
       : role === "teacher"
         ? ([
             [base, "Review queue", LayoutDashboard],
             [`${base}/reviews`, "My reviews", CheckCircle2],
             ["/projects", "Repository", FolderOpen],
+            ["/analytics", "Analytics", BarChart3],
           ] as const)
         : ([
             [base, "Overview & users", LayoutDashboard],
             ["/projects", "Repository", FolderOpen],
+            ["/analytics", "Analytics", BarChart3],
             ["/domains", "Domain taxonomy", Users],
           ] as const);
   return (
     <div className="workspace">
       <aside className="sidebar">
-        <div className="sidebar-label">{role} WORKSPACE</div>
+        <div className="sidebar-label">{role} panel</div>
         {links.map(([href, label, Icon]) => (
           <Link
             key={href}
@@ -351,8 +356,8 @@ export function Workspace({
         ))}
         <div className="sidebar-tip">
           <Sparkles size={19} />
-          <strong>Ideas with a future.</strong>
-          <p>Discover, build and share work that makes a difference.</p>
+          <strong>One link. One project.</strong>
+          <p>Import a GitHub repository and turn your work into shared knowledge.</p>
         </div>
         <div className="sidebar-profile">
           <span className="avatar">{profile.name[0]}</span>

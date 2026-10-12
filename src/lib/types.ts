@@ -32,6 +32,10 @@ export interface Analysis {
   similarProjects: SimilarProject[];
   analyzedAt: string;
   notice?: string;
+  repository?: {
+    url: string; commit: string; files: string[]; languages: string[];
+    warnings: string[]; summaryMethod: "gemini" | "repository-extract";
+  };
 }
 export interface Project {
   id: string;

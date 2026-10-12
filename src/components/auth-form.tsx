@@ -88,7 +88,7 @@ export function AuthForm({ register = false }: { register?: boolean }) {
         <div className="eyebrow">
           {register ? "JOIN THE COMMUNITY" : "WELCOME BACK"}
         </div>
-        <h2>{register ? "Make room for your ideas." : "Back to building."}</h2>
+        <h2>{register ? "Create your account" : "Welcome back"}</h2>
         <p>
           {register
             ? "Create an account to share or review student innovation."

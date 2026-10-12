@@ -1,26 +1,18 @@
 import { createHash } from "node:crypto";
 import { adminServices } from "../firebase/admin";
 import { DOMAINS, normalizeTechnologies, classifyByRules } from "../taxonomy";
-import { tokens, similarityService } from "../similarity";
+import { tokens, similarityService, similarityText } from "../similarity";
 import { geminiSchema } from "../validation";
 import { HttpError, assertActive } from "./http";
 import type { Analysis, ProjectInput, Project } from "../types";
 export const contentHash = (p: ProjectInput) =>
   createHash("sha256")
-    .update(JSON.stringify([p.title, p.abstract, p.description]))
+    .update(JSON.stringify([p.title, p.abstract, p.description, p.githubUrl]))
     .digest("hex");
 export const cacheKey = (uid: string, p: ProjectInput) =>
   `${uid}_${contentHash(p)}`;
-export async function analyze(
-  uid: string,
-  p: ProjectInput,
-  excludeProjectId?: string,
-): Promise<Analysis> {
+export async function reserveAnalysisBudget(uid: string) {
   const { db } = adminServices();
-  const ref = db.collection("analysisCache").doc(cacheKey(uid, p));
-  const cache = await ref.get();
-  let result = cache.exists ? (cache.data()?.result as Analysis) : undefined;
-  if (!result) {
     const day = new Date().toISOString().slice(0, 10);
     const uref = db.collection("aiUsage").doc(`${uid}_${day}`);
     const gref = db.collection("aiUsage").doc(`global_${day}`);
@@ -40,6 +32,18 @@ export async function analyze(
       tx.set(uref, { count: uc + 1, uid, day });
       tx.set(gref, { count: gc + 1, day });
     });
+}
+export async function analyze(
+  uid: string,
+  p: ProjectInput,
+  excludeProjectId?: string,
+): Promise<Analysis> {
+  const { db } = adminServices();
+  const ref = db.collection("analysisCache").doc(cacheKey(uid, p));
+  const cache = await ref.get();
+  let result = cache.exists ? (cache.data()?.result as Analysis) : undefined;
+  if (!result) {
+    await reserveAnalysisBudget(uid);
     const text = `${p.title}\n${p.abstract}\n${p.description}`;
     const normalized = normalizeTechnologies(text);
     const domain = classifyByRules(text);
@@ -145,7 +149,7 @@ export async function analyze(
   const finalResult: Analysis = {
     ...result,
     similarProjects: similarityService.compare(
-      `${p.title} ${p.abstract} ${p.description}`,
+      similarityText(p),
       projects,
     ),
     notice: `${(result.notice ?? "").split(" Similarity compares")[0]} Similarity compares up to 200 approved projects and measures text overlap, not plagiarism.`,

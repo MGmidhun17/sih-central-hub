@@ -4,6 +4,9 @@ const stop = new Set(
     " ",
   ),
 );
+export function similarityText(p: { title: string; abstract: string; description: string }) {
+  return `${p.title} ${p.abstract} ${p.description.split("\n\nRepository evidence")[0]}`;
+}
 export function tokens(text: string) {
   return (text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter(
     (t) => t.length > 1 && !stop.has(t),
@@ -34,7 +37,7 @@ export class LexicalSimilarityService implements SimilarityService {
     const docs = [
       tokens(text),
       ...projects.map((p) =>
-        tokens(`${p.title} ${p.abstract} ${p.description}`),
+        tokens(similarityText(p)),
       ),
     ];
     const df = new Map<string, number>();

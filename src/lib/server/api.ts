@@ -19,6 +19,8 @@ import { isAdmin, isTeacher, canReadProject, canEditProject } from "../policy";
 import { normalizeTechnologies, classifyByRules } from "../taxonomy";
 import { analyze, cacheKey } from "./analysis";
 import { z } from "zod";
+import { importRepository } from "./repository-import";
+import { searchProjects, projectAnalytics } from "../discovery";
 import type { Profile, Project, Analysis } from "../types";
 const now = () => new Date().toISOString();
 const idOK = (id: string) => {
@@ -79,6 +81,22 @@ export async function dispatch(req: Request, parts: string[]) {
     return json(user);
   }
   if (path === "me" && method === "GET") return json(await authorize(req));
+  if (path === "ai/import-repository" && method === "POST") {
+    const u = await authorize(req, "student");
+    const input = z.object({ githubUrl: z.string().trim().min(10).max(300), excludeProjectId: z.string().max(128).optional() }).strict().parse(await body(req));
+    if (input.excludeProjectId) {
+      const old = await db.collection("projects").doc(idOK(input.excludeProjectId)).get();
+      if (!old.exists || old.data()?.studentId !== u.uid) throw new HttpError(403, "Project does not belong to you.");
+    }
+    return json(await importRepository(u.uid, input.githubUrl, input.excludeProjectId));
+  }
+  if (["projects/search", "analytics"].includes(path) && method === "GET") {
+    const s = await db.collection("projects").where("status", "==", "approved").orderBy(FieldPath.documentId()).limit(501).get();
+    const projects = s.docs.slice(0,500).map(projectFrom);
+    if (path === "analytics") return json({ ...projectAnalytics(projects), truncated: s.size > 500 });
+    const matched = searchProjects(projects, url.searchParams);
+    return json({ items: matched.slice(0,100).map(publicProject), matched: matched.length, scanned: projects.length, truncated: s.size > 500 || matched.length > 100 });
+  }
   if (path === "ai/analyze" && method === "POST") {
     const u = await authorize(req, "student");
     const p = analysisSchema.parse(await body(req));

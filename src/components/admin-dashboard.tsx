@@ -24,7 +24,7 @@ import {
   date,
 } from "./ui";
 import type { Profile, Project, Review, Stats } from "@/lib/types";
-const colors = ["#91a9b2", "#e4b35b", "#c28461", "#438d77", "#cd7373"];
+const colors = ["#8ba6c8", "#f59e0b", "#7754e8", "#16b8a6", "#ef6474"];
 export function AdminDashboard() {
   const router = useRouter();
   const { api, profile, toast } = useApp();
@@ -102,7 +102,7 @@ export function AdminDashboard() {
     <Workspace role="admin">
       <PageTitle
         eyebrow="THE BIG PICTURE"
-        title="A community worth building."
+        title="Platform overview"
         description="Keep the repository healthy, support educators, and make room for new ideas."
       />
       <ErrorBox message={error} />

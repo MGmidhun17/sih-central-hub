@@ -27,6 +27,7 @@ import type {
   Analysis,
 } from "@/lib/types";
 import { canReadProject, canEditProject, isTeacher } from "@/lib/policy";
+import { searchProjects, projectAnalytics } from "@/lib/discovery";
 type API = (
   path: string,
   options?: { method?: string; body?: unknown },
@@ -130,6 +131,12 @@ export function Provider({ children }: { children: ReactNode }) {
     localStorage.setItem(DEMO_KEY, JSON.stringify(state));
   };
   const api: API = async (path, options = {}) => {
+    if ((demo || !firebaseConfigured) && ["projects/search", "analytics"].includes(path.split("?")[0])) {
+      const projects = (demo ? demoRef.current.projects : demoProjects).filter(p => p.status === "approved");
+      if (path.split("?")[0] === "analytics") return { ...projectAnalytics(projects), truncated: false };
+      const items = searchProjects(projects, new URLSearchParams(path.split("?")[1]));
+      return { items, matched: items.length, scanned: projects.length, truncated: false };
+    }
     if (!demo) {
       if (!firebaseConfigured && (options.method ?? "GET") === "GET") {
         if (
@@ -170,6 +177,10 @@ export function Provider({ children }: { children: ReactNode }) {
         ),
         nextCursor: null,
       };
+    if (route === "ai/import-repository") {
+      requireRole("student");
+      throw new Error("Live GitHub import requires a real student account and configured Firebase. Demo mode supports manual sample submissions only.");
+    }
     if (route === "ai/analyze") {
       requireRole("student");
       return demoAnalyze(

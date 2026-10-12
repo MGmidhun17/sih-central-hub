@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState, useEffectEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, ArrowRight, Save, Link2, CheckCircle2 } from "lucide-react";
+import { Sparkles, ArrowRight, Save, Link2, CheckCircle2, Github, FileCheck2 } from "lucide-react";
 import { useApp } from "./provider";
 import { Workspace, PageTitle, ErrorBox, Tags, Loading } from "./ui";
+import { parseGitHubUrl } from "@/lib/github-url";
 import { projectSchema } from "@/lib/validation";
 import type { ProjectInput, Analysis, Project } from "@/lib/types";
 const blank: ProjectInput = {
@@ -25,6 +26,16 @@ export function AnalysisPanel({ analysis: a }: { analysis: Analysis }) {
           {a.method === "dictionary" ? "Dictionary" : "Gemini + dictionary"}
         </span>
       </div>
+      {a.repository && <div className="repository-evidence">
+        <strong><Github size={16} /> Repository inspected</strong>
+        <a href={a.repository.url} target="_blank" rel="noreferrer">{a.repository.url.replace("https://github.com/", "")}</a>
+        <small>Revision {a.repository.commit.slice(0, 8)} · {a.repository.summaryMethod === "gemini" ? "AI-generated summary" : "Extracted summary"}</small>
+        <details><summary>View evidence & limitations</summary>
+          <p>Languages: {a.repository.languages.join(", ") || "Not reported"}</p>
+          <ul>{a.repository.files.map(f => <li key={f}>{f}</li>)}</ul>
+          {a.repository.warnings.map(w => <p key={w}>{w}</p>)}
+        </details>
+      </div>}
       {Object.entries(a.technologyCategories).map(([category, tags]) => (
         <div className="taxonomy-row" key={category}>
           <small>{category}</small>
@@ -110,8 +121,22 @@ export function ProjectEditor({ id }: { id?: string }) {
   }, [id, profile?.uid]);
   const change = (key: keyof ProjectInput, value: string) => {
     setForm((x) => ({ ...x, [key]: value }));
-    if (["title", "abstract", "description"].includes(key)) setAnalysis(null);
+    if (["title", "abstract", "description", "githubUrl"].includes(key)) setAnalysis(null);
   };
+  async function importRepo() {
+    setError("");
+    try { parseGitHubUrl(form.githubUrl); } catch {
+      setError("Paste a public GitHub repository URL, for example https://github.com/owner/repository."); return;
+    }
+    setBusy("import");
+    try {
+      const result = await api("ai/import-repository", { method: "POST", body: { githubUrl: form.githubUrl, ...(id ? { excludeProjectId: id } : {}) } }) as { project: ProjectInput; analysis: Analysis };
+      setForm(old => ({ ...result.project, presentationUrl: old.presentationUrl, demoUrl: old.demoUrl }));
+      setAnalysis(result.analysis);
+      toast("Repository inspected. Review the extracted details, then submit.");
+    } catch(e) { setError((e as Error).message); }
+    finally { setBusy(""); }
+  }
   async function action(kind: "analyze" | "draft" | "pending") {
     setError("");
     const parsed = projectSchema.safeParse(form);
@@ -154,25 +179,42 @@ export function ProjectEditor({ id }: { id?: string }) {
     <Workspace role="student">
       <PageTitle
         eyebrow="TURN YOUR WORK INTO SHARED KNOWLEDGE"
-        title={id ? "Refine your idea." : "Share what you’re building."}
-        description="Tell the story, connect the technology, and let your work inspire someone."
+        title={id ? "Edit your project" : "Submit your project"}
+        description="One GitHub link. Your project, automatically organized."
       />
       {loading ? (
         <Loading />
       ) : (
+        <>
+        <div className="submission-steps" aria-label="Submission workflow">
+          <span className="active"><b>1</b> GitHub repository</span><span className={analysis ? "active" : ""}><b>2</b> Review analysis</span><span><b>3</b> Teacher approval</span>
+        </div>
+        <section className="repo-import panel">
+          <div className="repo-import-heading"><span className="github-icon"><Github size={28}/></span><div><h2>Start with your GitHub repository</h2><p>We’ll extract your project details, detect technologies, suggest an SIH domain, and check similar work.</p></div></div>
+          <form onSubmit={e => { e.preventDefault(); void importRepo(); }} className="repo-import-form">
+            <label htmlFor="repo-url">Public GitHub repository URL
+              <input id="repo-url" type="url" required value={form.githubUrl} disabled={!!busy} onChange={e=>change("githubUrl", e.target.value)} placeholder="https://github.com/your-name/your-project" />
+            </label>
+            <button className="button" disabled={!!busy}><Sparkles size={18}/>{busy === "import" ? "Reading repository & analyzing…" : "Import & analyze"}</button>
+          </form>
+          <small>Public repositories only. Analysis reads documentation and dependency files; it does not run your code. Importing replaces the details below.</small>
+          {busy === "import" && <p role="status" className="import-progress">Reading GitHub → extracting details → classifying → checking similarity. This may take up to a minute.</p>}
+          <ErrorBox message={error}/>
+        </section>
         <div className="editor-grid">
           <section className="panel">
             <div className="panel-heading">
-              <h2>Project details</h2>
+              <h2><FileCheck2 size={19}/> Review project details</h2>
               <span className="muted">* Required fields</span>
             </div>
-            <ErrorBox message={error} />
+            <p className="muted">Filled automatically after import. You can correct the text or enter details manually.</p>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 void action("pending");
               }}
             >
+              <fieldset disabled={!!busy}>
               <label>
                 Project title *
                 <input
@@ -216,11 +258,6 @@ export function ProjectEditor({ id }: { id?: string }) {
               {(
                 [
                   [
-                    "githubUrl",
-                    "GitHub repository",
-                    "https://github.com/you/project",
-                  ],
-                  [
                     "presentationUrl",
                     "Presentation / document",
                     "https://drive.google.com/…",
@@ -257,6 +294,7 @@ export function ProjectEditor({ id }: { id?: string }) {
                   <ArrowRight size={17} />
                 </button>
               </div>
+              </fieldset>
             </form>
           </section>
           <aside>
@@ -265,12 +303,10 @@ export function ProjectEditor({ id }: { id?: string }) {
                 <Sparkles />
               </div>
               <div className="eyebrow">
-                A LITTLE INTELLIGENCE, A LOT OF CLARITY
+                AUTOMATED PROJECT ANALYSIS
               </div>
               <h2>
-                Connect your project
-                <br />
-                to the bigger picture.
+                Your project, organized.
               </h2>
               <p>
                 Identify technologies, suggest a domain, and find potentially
@@ -286,7 +322,7 @@ export function ProjectEditor({ id }: { id?: string }) {
                   ? "Analyzing your project…"
                   : "Analyze project"}
               </button>
-              <small>Optional. Your project can be submitted without AI.</small>
+              <small>Edited the details? Analyze again to refresh tags and matches.</small>
             </div>
             {analysis ? (
               <AnalysisPanel analysis={analysis} />
@@ -303,6 +339,7 @@ export function ProjectEditor({ id }: { id?: string }) {
             )}
           </aside>
         </div>
+        </>
       )}
     </Workspace>
   );
