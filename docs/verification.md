@@ -28,3 +28,7 @@ The prior 11 October package recorded a 30-test Firebase emulator run. That hist
 - Added emulator assertions for submitted-project queue/detail access and student denial. The emulator suite is included but was not run in this environment.
 
 Remaining acceptance check: deploy, approve a real teacher, submit a real student project (not a draft), and verify the teacher can open and review it. Live database records and deployments were not modified.
+
+## Professional UI refresh
+
+Production build and TypeScript passed for the larger-font responsive UI update. The existing 29-test result above applies to the preceding functional update; tests were not rerun for this presentation-only change. No external font downloads or new dependencies were introduced. Browser screenshots, touch interactions, 200% zoom, and mobile overflow still need visual verification after deployment.

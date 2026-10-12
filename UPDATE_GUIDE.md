@@ -1,3 +1,15 @@
+# Professional UI update — larger text and mobile layouts
+
+If your repository already contains the latest SIH 17-domain version, replace these three files at their existing paths using GitHub’s browser editor:
+
+1. `src/app/layout.tsx`
+2. `src/app/professional.css` (new file)
+3. `src/components/ui.tsx`
+
+Commit the changes together and wait for Vercel to finish deploying. Keep all existing environment variables. Do not paste CSS into globals.css; the layout imports the new stylesheet after it. If you have an older version, use the full-folder update below.
+
+The body uses a system sans-serif font at 16px, most supporting text at 13–16px, and larger headings. Controls have 44–48px minimum touch targets. Navigation collapses below 1000px. Dashboard navigation scrolls horizontally on tablets/phones. Content grids collapse to a single column on phones, forms stack, and tables scroll inside their own panels. Keyboard focus indicators and mobile menu expanded-state labels are included. The production build is checked; visual browser QA was unavailable, so verify at phone and desktop widths after deployment.
+
 # Update your existing HackRepo deployment
 
 This package contains the complete updated application. Your currently deployed Vercel site does not change until these files are committed to its connected GitHub repository and Vercel successfully deploys that commit.
