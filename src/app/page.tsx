@@ -16,8 +16,8 @@ export default function Home(){
     <section className="landing-hero"><div className="container hero">
       <div className="hero-copy"><div className="eyebrow"><span className="live-dot"/> CONNECTING STUDENT INNOVATION</div>
         <h1>Great ideas.<br/><em>Shared possibilities.</em></h1>
-        <p>A centralized repository of student hackathon projects. Turn a GitHub link into a project profile with automated technology tags and SIH domain alignment.</p>
-        <div className="hero-actions"><Link className="button" href="/projects">Explore projects <ArrowRight size={17}/></Link><Link className="button secondary" href="/projects/new"><Github size={18}/> Submit repository</Link></div>
+        <p>A centralized repository of student hackathon projects. Turn a GitHub repository or source upload into a project profile with automated technology tags and SIH domain alignment.</p>
+        <div className="hero-actions"><Link className="button" href="/projects">Explore projects <ArrowRight size={17}/></Link><Link className="button secondary" href="/projects/new"><Github size={18}/> Submit project</Link></div>
         <div className="hero-trust"><CheckCircle2 size={16}/> Teacher-reviewed projects <span>•</span> Built for students</div>
       </div>
       <div className="hero-art" aria-label="Illustration of a GitHub repository becoming an organized project profile">
@@ -26,7 +26,7 @@ export default function Home(){
           <div className="repo-window-body"><div className="repo-file-nav"><FolderGit2 size={28}/><span>README.md</span><span>package.json</span><span>src /</span></div><div className="repo-code"><small>YOUR REPOSITORY</small><h3>Ideas begin<br/>with a commit.</h3><div className="code-line w90"/><div className="code-line w65"/><div className="code-line w80"/><div className="code-line w55"/><div className="code-line w70"/></div></div>
         </div>
         <div className="profile-window"><div className="profile-window-top"><span><Code2 size={21}/></span><div><small>PROJECT PROFILE</small><strong>Your next big idea</strong></div><span className="ai-pill"><Sparkles size={12}/> AI</span></div><div className="profile-window-content"><small>TECHNOLOGIES DETECTED</small><div className="tags"><span>Languages</span><span>Frameworks</span><span>Databases</span></div><div className="profile-domain"><GraduationCap size={22}/><div><small>SIH DOMAIN</small><strong>17 SIH domains</strong></div><CheckCircle2 size={18}/></div><div className="profile-progress"><i/><i/><i/><i/></div><small>IMPORT → CLASSIFY → REVIEW</small></div></div>
-        <div className="hero-float"><Sparkles size={19}/><span>One link. <strong>Connected knowledge.</strong></span></div><div className="hero-code-badge"><GitBranch size={25}/></div>
+        <div className="hero-float"><Sparkles size={19}/><span>Your code. <strong>Connected knowledge.</strong></span></div><div className="hero-code-badge"><GitBranch size={25}/></div>
       </div>
     </div></section>
     <section className="landing-metrics container" aria-label="Approved repository statistics">
@@ -38,7 +38,7 @@ export default function Home(){
       <ErrorBox message={error}/><div className="project-grid">{projects.map(p=><ProjectCard key={p.id} project={p}/>)}</div>
       {!error && stats?.total===0 && <div className="empty"><FolderGit2 size={32}/><h3>Your community starts here</h3><p>Submit a repository and get a teacher’s review to publish your first project.</p><Link className="button" href="/projects/new">Submit a repository</Link></div>}
     </section>
-    <section className="feature-section" id="how-it-works"><div className="container section"><div className="center-heading"><div className="eyebrow">ONE REPOSITORY. MORE POSSIBILITIES.</div><h2>From source code to shared knowledge</h2><p>Paste a public GitHub link, review the extracted details, and submit for teacher approval.</p></div>
+    <section className="feature-section" id="how-it-works"><div className="container section"><div className="center-heading"><div className="eyebrow">ONE REPOSITORY. MORE POSSIBILITIES.</div><h2>From source code to shared knowledge</h2><p>Import a public GitHub repository, raw source file or ZIP, review the extracted details, and submit for teacher approval.</p></div>
       <div className="feature-grid">{[
         [FolderGit2,"Centralized repository","Keep approved student projects, source links, and reviews in one searchable collection."],
         [Tags,"Automated technology tagging","Identify languages and frameworks from README files and dependency manifests."],
