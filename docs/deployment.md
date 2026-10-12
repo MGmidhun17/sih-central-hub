@@ -5,7 +5,7 @@ Use the Firebase/Vercel steps in README. No alternate hosting platform is substi
 ## Before deployment
 
 - Confirm the Firebase web config and Admin service account belong to the same project.
-- Enable email/password Authentication and create the default Firestore database.
+- Enable email/password and Google Authentication, authorize the deployed hostname, and create the default Firestore database. Follow `GOOGLE_SIGN_IN_SETUP.md`.
 - Publish `firestore.rules` exactly; do not use open test-mode rules.
 - Bootstrap the one owner and set its exact ADMIN_UID on Vercel.
 - Keep all emulator variables unset in production.
@@ -32,7 +32,7 @@ Use the Firebase/Vercel steps in README. No alternate hosting platform is substi
 - 401: sign out/in and check Auth project configuration.
 - 403 admin: check both Firestore role and ADMIN_UID; a role by itself is insufficient.
 - Teacher still pending: reload/sign back in after owner approval.
-- New account exists in Auth but has no profile: sign in, open Sign up, and complete name/institution/role.
+- New account exists in Auth but has no profile: sign in and complete the profile form shown after authentication. Sign up also lets an authenticated user finish their profile.
 - Gemini always uses dictionary: check both GEMINI_API_KEY and GEMINI_MODEL; clear the matching cached fallback or alter the content before trying again.
 - Deleted account remains marked deleting: retry deletion from the owner dashboard to finish interrupted work.
 - Search misses a record: load additional pages; filters apply to currently loaded records.

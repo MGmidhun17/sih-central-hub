@@ -70,6 +70,28 @@ test(
     ] as const)
       assert.equal((await register(u.idToken, r)).status, 200);
     await db.collection("users").doc(owner.localId).update({ role: "admin" });
+    await t.test("Google identity completes a profile without role escalation or duplicate registration", async () => {
+      const googleId=`google-${Date.now()}`;
+      // Unsigned identity tokens are accepted ONLY by the local Auth emulator.
+      const fakeIdToken=[Buffer.from(JSON.stringify({alg:"none"})).toString("base64url"),Buffer.from(JSON.stringify({sub:googleId,email:`${googleId}@example.test`,email_verified:true,name:"Google Tester"})).toString("base64url"),""].join(".");
+      async function googleLogin() {
+        const response=await fetch(`http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=demo`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({requestUri:"http://localhost",postBody:new URLSearchParams({providerId:"google.com",id_token:fakeIdToken}).toString(),returnSecureToken:true})});
+        const data=await response.json();assert.equal(response.status,200,JSON.stringify(data));return data as {idToken:string;localId:string};
+      }
+      const first=await googleLogin();
+      const identity=await auth.verifyIdToken(first.idToken);assert.equal(identity.firebase.sign_in_provider,"google.com");
+      assert.equal((await call("me","GET",first.idToken)).status,403);
+      assert.equal((await register(first.idToken,"admin")).status,400);
+      const profile=await register(first.idToken,"teacher");assert.equal(profile.status,200);assert.equal(profile.data.approved,false);
+      assert.equal((await call("projects?queue=1","GET",first.idToken)).status,403);
+      assert.equal((await call("admin/users","GET",first.idToken)).status,403);
+      const second=await googleLogin();assert.equal(second.localId,first.localId);
+      const retained=await register(second.idToken,"student");assert.equal(retained.data.role,"teacher");assert.equal(retained.data.approved,false);
+      assert.equal((await call("me","GET",second.idToken)).data.uid,first.localId);
+      assert.equal((await call(`admin/teachers/${first.localId}`,"PATCH",owner.idToken,{approved:true})).status,200);
+      assert.equal((await call("projects?queue=1","GET",second.idToken)).status,200);
+      await db.collection("users").doc(first.localId).delete();await auth.deleteUser(first.localId);
+    });
     await t.test(
       "admin APIs reject anonymous and student callers",
       async () => {

@@ -1,4 +1,4 @@
-# Update: consistent UI, source uploads, PowerPoint and versions
+# Update: screenshot alignment fixes and Google sign-in
 
 This update changes both frontend and backend. Replace the complete project contents, not just CSS. No new environment variables or Firebase Storage setup are required. Existing Vercel/Firebase credentials remain in their dashboards.
 
@@ -11,6 +11,16 @@ This update changes both frontend and backend. Replace the complete project cont
 5. Wait for Vercel → Deployments → Ready for the new commit. Refresh the website.
 
 If you use GitHub's browser editor, preserve every file's exact relative path. This is a full application update, so copying only the stylesheet will not enable uploads or duplicate checks.
+
+## New in this update
+
+- Restored stacked labels with full-width fields in project submission and authentication forms. Character counters sit below text areas.
+- Aligned repository URL input and import action; stacked them on smaller screens.
+- Matched project-card title/description space, aligned footers and removed hover movement.
+- Added internal padding and readable labels to analysis results; made the header opaque and moved navigation into a menu earlier at narrower widths.
+- Added Google sign-in to login and signup, first-time profile completion, existing-role preservation and actionable error messages.
+
+**Required:** follow `GOOGLE_SIGN_IN_SETUP.md` to enable Google in Firebase and authorize your Vercel domain. No new API key is needed for Google sign-in.
 
 ## What students can submit
 

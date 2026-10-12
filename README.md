@@ -234,3 +234,7 @@ Files are stored as 512 KiB binary chunks in Firestore `projectFiles`, atomicall
 Similarity is still a warning, not proof of duplication. Rewritten copies, mirrored repositories, novel-looking descriptions and semantic equivalence are not reliably detected. Changes to actual source receive a different fingerprint and remain subject to teacher review.
 
 To submit an advanced model, select “advanced version,” enter the approved original project's link/ID, describe improvements (at least 40 characters), and submit changed source. Both records remain separate and become public after their own teacher approval. Original pages show approved advanced versions; private versions are filtered by access permissions. No automatic claim of superior performance is made.
+
+## Google sign-in
+
+The login and signup forms support Google popup authentication through the existing Firebase project. Enable the Google provider and authorize the deployed domain as described in `GOOGLE_SIGN_IN_SETUP.md`. New users complete name, institution and role; existing roles and approval state remain unchanged. Teachers still require owner approval. Admin access still requires the configured UID and server-side admin role. Email/password remains supported.
