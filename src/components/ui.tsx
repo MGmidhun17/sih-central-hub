@@ -51,6 +51,7 @@ export function Header() {
           <Logo />
           <nav
             className={open ? "nav-links open" : "nav-links"}
+            id="main-navigation"
             aria-label="Main navigation"
           >
             <Link
@@ -102,7 +103,10 @@ export function Header() {
             <button
               className="icon-button mobile-menu"
               onClick={() => setOpen(!open)}
-              aria-label="Toggle menu"
+              onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
+              aria-label={open ? "Close navigation" : "Open navigation"}
+              aria-expanded={open}
+              aria-controls="main-navigation"
             >
               {open ? <X /> : <Menu />}
             </button>
