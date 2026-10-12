@@ -11,6 +11,7 @@ import {
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { clientAuth, firebaseConfigured } from "@/lib/firebase/client";
 import type { Profile } from "@/lib/types";
+import { APIError } from "@/lib/auth-flow";
 type API = (
   path: string,
   options?: { method?: string; body?: unknown },
@@ -53,7 +54,7 @@ export function Provider({ children }: { children: ReactNode }) {
         options.body === undefined ? undefined : options.body instanceof FormData ? options.body : JSON.stringify(options.body),
     });
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error ?? "Request failed.");
+    if (!response.ok) throw new APIError(response.status, result.error ?? "Request failed.");
     return result;
   }, []);
   const download = async (path:string,name:string) => {

@@ -260,6 +260,7 @@ export function ProjectEditor({ id }: { id?: string }) {
                 Methodology & technology
                 <textarea
                   rows={7}
+                  name="description"
                   value={form.description}
                   maxLength={12000}
                   onChange={(e) => change("description", e.target.value)}
