@@ -23,6 +23,7 @@ import {
   Trees,
   Lightbulb,
   BarChart3,
+  Search, ClipboardList, Activity,
   Dumbbell, Landmark, Car, Truck, Bot, MapPin, Zap, Siren, Gamepad2, Rocket,
 } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
@@ -44,6 +45,14 @@ export function Header() {
   const { profile, logout } = useApp();
   const [open, setOpen] = useState(false);
   const path = usePathname();
+  const inWorkspace = path.startsWith("/dashboard") || path === "/projects/new" || path.endsWith("/edit");
+  if (inWorkspace && profile && !(profile.role === "teacher" && !profile.approved)) return (
+    <header className="workspace-topbar">
+      <div className="workspace-breadcrumb"><span>Workspace</span><span>/</span><strong>{profile.role === "teacher" ? "Teaching" : profile.role === "admin" ? "Administration" : "My projects"}</strong></div>
+      <form action="/projects" className="workspace-search"><Search size={18}/><input name="q" aria-label="Search approved projects" placeholder="Search the repository…"/></form>
+      <div className="workspace-account"><span className="avatar">{profile.name.charAt(0).toUpperCase()}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div><button className="icon-button" onClick={() => void logout()} aria-label="Sign out"><LogOut size={18}/></button></div>
+    </header>
+  );
   return (
     <>
       <header className="header">
@@ -117,6 +126,8 @@ export function Header() {
   );
 }
 export function Footer() {
+  const path = usePathname();
+  if (path.startsWith("/dashboard") || path === "/projects/new" || path.endsWith("/edit")) return null;
   return (
     <footer className="footer container">
       <Logo />
@@ -330,12 +341,14 @@ export function Workspace({
           ] as const);
   return (
     <div className="workspace">
-      <aside className="sidebar">
-        <div className="sidebar-label">{role} panel</div>
+      <aside className="sidebar" aria-label="Workspace navigation">
+        <div className="sidebar-brand"><Logo /></div>
+        <div className="sidebar-label">{role === "teacher" ? "TEACHING WORKSPACE" : role === "admin" ? "ADMINISTRATION" : "YOUR WORKSPACE"}</div>
         {links.map(([href, label, Icon]) => (
           <Link
             key={href}
             className={path === href ? "selected" : ""}
+            aria-current={path === href ? "page" : undefined}
             href={href}
           >
             <Icon size={18} />
@@ -344,8 +357,9 @@ export function Workspace({
         ))}
         <div className="sidebar-tip">
           <Sparkles size={19} />
-          <strong>One link. One project.</strong>
-          <p>Import a GitHub repository and turn your work into shared knowledge.</p>
+          <strong>{role === "teacher" ? "Make feedback count" : role === "admin" ? "A trusted community" : "From code to discovery"}</strong>
+          <p>{role === "teacher" ? "Review the idea, inspect the source, and help students take their next step." : role === "admin" ? "Approve educators and keep your student repository organized." : "Import your repository. Get technology tags and an SIH domain suggestion."}</p>
+          <Link href={role === "teacher" ? "/dashboard/teacher/reviews" : role === "admin" ? "/domains" : "/projects/new"}>{role === "teacher" ? "View your reviews" : role === "admin" ? "Explore domains" : "Start a submission"} <ArrowUpRight size={15}/></Link>
         </div>
         <div className="sidebar-profile">
           <span className="avatar">{profile.name[0]}</span>
@@ -368,17 +382,9 @@ export function StatCards({
     <div className="stats-grid">
       {items.map((x, i) => (
         <div className="stat-card" key={x.label}>
-          <span>{x.label}</span>
+          <div className="stat-heading"><span>{x.label}</span><span className={`stat-symbol tone-${i % 4}`}>{i % 4 === 0 ? <ClipboardList size={20}/> : i % 4 === 1 ? <Activity size={20}/> : i % 4 === 2 ? <CheckCircle2 size={20}/> : <BarChart3 size={20}/>}</span></div>
           <strong>{x.value}</strong>
-          <small>
-            {x.hint ??
-              [
-                "Your innovation journey",
-                "Ready for discovery",
-                "Moving ideas forward",
-                "Keep building",
-              ][i % 4]}
-          </small>
+          {x.hint && <small>{x.hint}</small>}
         </div>
       ))}
     </div>

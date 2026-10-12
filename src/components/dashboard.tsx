@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState, useEffectEvent } from "react";
-import { Plus, ArrowUpRight, Search, Trash2, PenLine } from "lucide-react";
+import { Plus, ArrowUpRight, Search, Trash2, PenLine, Sparkles, CheckCircle2, BookOpen, RefreshCw } from "lucide-react";
 import { useApp } from "./provider";
 import {
   Workspace,
@@ -85,18 +85,18 @@ export function Dashboard({
         }
         title={
           history
-            ? "A record of your guidance."
+            ? "Your review history"
             : teacher
-              ? `Welcome, ${profile?.name.split(" ")[0] ?? "educator"}.`
-              : `Welcome back, ${profile?.name.split(" ")[0] ?? "builder"}.`
+              ? "Teacher overview"
+              : "Your project workspace"
         }
         description={
           teacher
-            ? "A thoughtful review can turn a promising idea into something exceptional."
-            : "Every project is a step forward. Here’s where yours stand."
+            ? "Review student ideas, share useful feedback, and recognize great work."
+            : "Manage your submissions and turn your work into shared knowledge."
         }
       >
-        {teacher && <button className="button secondary" disabled={loading} onClick={() => void load()}>Refresh submissions</button>}
+        {teacher && <button className="button secondary" disabled={loading} onClick={() => void load()}><RefreshCw size={16}/> Refresh</button>}
         {!teacher && (
           <Link className="button" href="/projects/new">
             <Plus size={18} />
@@ -148,6 +148,10 @@ export function Dashboard({
                   ]
             }
           />
+          {!history && <section className="workspace-guide">
+            <div className="guide-copy"><span className="guide-icon">{teacher ? <BookOpen size={24}/> : <Sparkles size={24}/>}</span><div><span className="eyebrow">{teacher ? "YOUR NEXT STEP" : "GITHUB TO PROJECT PROFILE"}</span><h2>{teacher ? projects.length ? "New ideas are ready for your feedback" : "You’re up to date" : "One repository. A world of possibilities."}</h2><p>{teacher ? projects.length ? "Open a submission below to inspect its source, technology tags, and SIH classification." : "There are no submissions waiting for review. Your completed reviews are saved in My reviews." : "Paste your GitHub link to organize your project, discover its technology stack, and submit it for review."}</p></div></div>
+            <Link className="button" href={teacher ? "/dashboard/teacher/reviews" : "/projects/new"}>{teacher ? "My reviews" : "Import repository"}<ArrowUpRight size={17}/></Link>
+          </section>}
           {cursor && (
             <p className="muted">
               Counts reflect loaded projects. Load more below to include
@@ -301,16 +305,12 @@ export function Dashboard({
                     </table>
                   </div>
                 ) : (
-                  <Empty
-                    title={
-                      teacher ? "All caught up" : "Make your first idea visible"
-                    }
-                    text={
-                      teacher
-                        ? "New student submissions will appear here."
-                        : "Create a project draft and start telling its story."
-                    }
-                  />
+                  <div className="queue-empty">
+                    <span className="queue-empty-icon"><CheckCircle2 size={28}/></span>
+                    <h3>{query || status ? "No matching projects" : teacher ? "Your review queue is clear" : "Your first project starts here"}</h3>
+                    <p>{query || status ? "Change your search or status filter to see more results." : teacher ? "New student submissions will appear here. Approved projects are available in the repository." : "Import a GitHub repository, check the details, and submit it for teacher review."}</p>
+                    <Link className="button secondary" href={teacher ? "/projects" : "/projects/new"}>{teacher ? "Explore approved projects" : "Submit a project"}<ArrowUpRight size={16}/></Link>
+                  </div>
                 )}{" "}
                 {cursor && (
                   <button
