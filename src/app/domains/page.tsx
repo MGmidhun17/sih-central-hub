@@ -7,8 +7,8 @@ export default function Domains() {
   return (
     <main className="container section">
       <PageTitle
-        eyebrow="IDEAS WITHOUT BOUNDARIES"
-        title="A world of challenges to solve."
+        eyebrow="FIND YOUR FIELD OF INNOVATION"
+        title="SIH domains"
         description="Explore our SIH-aligned domain taxonomy. These are repository categories, not an official SIH endorsement."
       />
       <div className="domain-grid">
