@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Provider } from "@/components/provider";
 import { Header, Footer } from "@/components/ui";
 import "./globals.css";
+import "./professional.css";
 export const metadata: Metadata = {
   title: {
     default: "HackRepo — Good ideas deserve to be found",
