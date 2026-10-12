@@ -3,15 +3,13 @@ import { useEffect, useEffectEvent, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useApp } from "@/components/provider";
 import { PageTitle, StatCards, Loading, ErrorBox, Empty } from "@/components/ui";
-import { firebaseConfigured } from "@/lib/firebase/client";
 import type { RepositoryAnalytics } from "@/lib/discovery";
 const colors=["#0875fa","#16b8a6","#f59e0b","#7754e8","#ef6474","#179cc4","#689a33","#d77837"];
 export default function Analytics(){
-  const {api,demo}=useApp(); const [data,setData]=useState<RepositoryAnalytics|null>(null),[error,setError]=useState("");
+  const {api}=useApp(); const [data,setData]=useState<RepositoryAnalytics|null>(null),[error,setError]=useState("");
   const load=useEffectEvent(()=> {api("analytics").then(x=>{setData(x as RepositoryAnalytics);setError("");}).catch(e=>setError(e.message));});
-  useEffect(()=>{load();},[demo]);
+  useEffect(()=>{load();},[]);
   return <main className="container section"><PageTitle eyebrow="REPOSITORY INSIGHTS" title="Innovation at a glance" description="Understand the domains, technologies and participation behind the approved project collection."/>
-    {(demo || !firebaseConfigured) && <div className="info">Demo analytics · These charts use sample projects.</div>}
     <ErrorBox message={error}/>{!data ? !error && <Loading/> : <>
       <StatCards items={[{label:"Approved projects",value:data.total,hint:"Published collection"},{label:"Student contributors",value:data.students,hint:"Unique project owners"},{label:"Institutions",value:data.institutions,hint:"From submitted profiles"},{label:"GitHub repositories",value:data.githubProjects,hint:"Projects with source links"}]}/>
       <p className="search-explainer">{data.truncated ? "These statistics cover the first 500 approved projects, not the entire repository." : "Statistics cover approved projects only. Drafts and pending submissions are private."}</p>

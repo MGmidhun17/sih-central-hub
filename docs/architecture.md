@@ -1,6 +1,6 @@
 # Architecture and workflow
 
-The Next.js App Router serves public pages and client-side role workspaces. A catch-all Node.js route dispatches explicit HTTP endpoints in `src/lib/server/api.ts`. Firebase Admin is initialized lazily so builds and demo rendering do not need credentials. It is imported only by server code or trusted scripts.
+The Next.js App Router serves public pages and client-side role workspaces. A catch-all Node.js route dispatches explicit HTTP endpoints in `src/lib/server/api.ts`. Firebase Admin is initialized lazily so production builds do not need credentials. It is imported only by server code or trusted scripts.
 
 Firebase Auth ID tokens are attached as Bearer headers. Every protected request verifies the token with revocation checking, loads the profile, and applies the role/approval/deletion policy. Browser route guards improve navigation but provide no authorization by themselves.
 
@@ -26,6 +26,5 @@ Admin: `/dashboard/admin`, `/dashboard/admin/users/[uid]`.
 
 API: `POST auth/register`, `GET me`, `GET/POST projects`, `GET/PATCH/DELETE projects/:id`, `POST projects/:id/review`, `GET reviews`, `POST ai/analyze`, `POST ai/import-repository`, `GET projects/search`, `GET analytics`, `GET admin/stats`, `GET admin/users`, `GET/DELETE admin/users/:uid`, `PATCH admin/teachers/:uid` (all under `/api/`).
 
-## Demo isolation
+## Authenticated data
 
-The demo provider implements the same UI-facing contract with browser-local sample state. Demo roles are explicitly selected, arbitrary and untrusted. They never reach server authorization. In normal mode, only verified Firebase identities can access the live service. Stored demo data has no relation to production Firestore.

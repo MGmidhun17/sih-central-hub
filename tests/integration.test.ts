@@ -225,6 +225,16 @@ test(
         403,
       );
     });
+    await t.test("submitted project is visible in the approved teacher queue and detail", async () => {
+      const queue = await call("projects?queue=1", "GET", teacher.idToken);
+      assert.equal(queue.status, 200);
+      assert(queue.data.items.some((p: {id: string}) => p.id === id));
+      const detail = await call(`projects/${id}`, "GET", teacher.idToken);
+      assert.equal(detail.status, 200);
+      assert.equal(detail.data.project.status, "pending");
+      assert.equal((await call("projects?queue=1", "GET", s.idToken)).status, 403);
+      assert.equal((await call(`projects/${id}`, "GET", other.idToken)).status, 403);
+    });
     await t.test(
       "students cannot review; approved teacher can request changes",
       async () => {

@@ -22,13 +22,12 @@ For an existing Vercel installation, start with **`UPDATE_GUIDE.md`**. This sour
 - Owner workspace: aggregate counts, status chart, paginated users, name/email search, individual profiles, teacher approval/rejection, confirmed cascading deletion.
 - Canonical technology taxonomy, dictionary matching, optional server-side Gemini extraction/classification, content-keyed caching and daily request caps.
 - TF-IDF cosine similarity against up to 200 approved projects. **This is lexical comparison, not Sentence-BERT, FAISS, semantic proof, or plagiarism detection.**
-- An isolated, explicitly labeled demo stored in the browser. Demo identities never authorize backend requests.
-- Server authorization, strict input validation, optimistic revisions, atomic reviews, deny-all client Firestore rules, owner bootstrap and sample-data scripts.
+- Server authorization, strict input validation, optimistic revisions, atomic reviews, deny-all client Firestore rules, owner bootstrap.
 - Automated unit tests and an emulator integration workflow covering access controls, reviews, direct Firestore rules and account deletion.
 
 ## Delivery status
 
-The source is implemented. Real Firebase, Gemini and Vercel accounts/credentials are not included. Live authentication, provider calls and production deployment must be configured and checked in your own accounts. The public interface can display sample projects without configuration; select a demo role on the home/login screen to exercise browser-local workflows.
+The source is implemented. Real Firebase, Gemini and Vercel accounts/credentials are not included. Live authentication, provider calls and production deployment must be configured and checked in your own accounts. All records and identities come from Firebase; empty repositories show empty states.
 
 See `docs/verification.md` for the checks actually performed and remaining verification limits.
 
@@ -43,7 +42,7 @@ npm run dev
 
 Open the localhost URL printed in the terminal, normally `http://localhost:3000`.
 
-No credentials are needed for the demo. Demo data is shared among the three role views in the same browser; switch through the home page to demonstrate submission and review. Exit demo returns to normal mode. To reset the demo, remove the `hackrepo-demo-v1` item from local storage and the `hackrepo-demo-role` session-storage item, then reload.
+Firebase credentials are required for authentication and repository data.
 
 ## 2. Set up Firebase
 
@@ -90,7 +89,7 @@ The included queries use equality filters and document-ID pagination. `firestore
 
 There is no public Admin signup option.
 
-1. Exit demo and register your own account as a **Student**.
+1. Register your own account as a **Student**.
 2. Copy its UID from **Firebase Authentication → Users**.
 3. Set `ADMIN_UID` to that exact UID in `.env.local`.
 4. Run:
@@ -108,7 +107,7 @@ The script verifies the Auth account, requires an existing profile, refuses anot
 
 Create an API key in https://aistudio.google.com/ and confirm which models and free quota are available for your account. Set `GEMINI_API_KEY` and the exact supported model identifier in `GEMINI_MODEL`. The app calls the Gemini `generateContent` REST endpoint with a JSON response schema and validates the response.
 
-Without both values, analysis uses its dictionary and keyword fallback. Quota failures, timeouts and malformed responses also fall back with a visible explanation. No credentials or successful live Gemini call are implied by the demo.
+Without both values, analysis uses its dictionary and keyword fallback. Quota failures, timeouts and malformed responses also fall back with a visible explanation.
 
 Students can paste only a public GitHub repository root URL and press **Import & analyze**. The authenticated server reads GitHub metadata, language totals, the default branch commit, its file tree and up to seven README/dependency files at that exact commit. No repository code or install scripts are executed. When Gemini is configured, this bounded evidence is sent to Gemini to draft the title, abstract, methodology, domain and keywords. Canonical technology tags come from inspected evidence. Generated details are editable and do not claim ownership or verification of code quality. Students must review and submit; teachers decide publication.
 
@@ -118,7 +117,7 @@ Optionally set `GITHUB_TOKEN` as a server-only Vercel variable to raise the publ
 
 Manual editing and text analysis remain available. Imported analysis is cached for saving against the generated content and repository URL. A fresh Import deliberately reads the repository again and consumes one shared daily analysis quota slot.
 
-Analysis is cached by user + content hash. To deliberately rerun the same text after changing provider configuration, remove the matching `analysisCache` document using the trusted Firebase console, then analyze again. Editing title, abstract, description or GitHub URL automatically changes the cache key. Presentation/demo links do not invalidate classification.
+Analysis is cached by user + content hash. To deliberately rerun the same text after changing provider configuration, remove the matching `analysisCache` document using the trusted Firebase console, then analyze again. Editing title, abstract, description or GitHub URL automatically changes the cache key. Presentation/video links do not invalidate classification.
 
 ## 5. Deploy on Vercel
 
@@ -158,17 +157,6 @@ FIREBASE_PROJECT_ID=demo-hackrepo npx --yes --package firebase-tools@13.35.1 fir
 
 This starts local Auth and Firestore, applies the local rules, creates throwaway accounts, exercises the real API dispatch/SDK against the emulators, and stops them. It never requires real project credentials. The pinned emulator CLI is not a runtime dependency. Use an up-to-date CLI for production administration.
 
-## 7. Optional sample records in Firebase
-
-First create a dedicated test student normally. Add these temporary values to `.env.local`:
-
-```dotenv
-SEED_STUDENT_UID=that-test-student-uid
-SEED_CONFIRM=yes
-```
-
-Then run `npm run seed`. It creates six clearly labeled sample projects using existing test-account ownership. It refuses to overwrite an existing seed. Some records are pre-approved to populate discovery, via the trusted Admin SDK script. Empty resource links are intentional; no fake repositories or videos are represented as real.
-
 ## Architecture
 
 ```mermaid
@@ -192,7 +180,7 @@ All database access passes through server routes. Browsers do not use Firestore 
 - `src/lib/firebase/`: client identity and server Admin initialization.
 - `src/lib/taxonomy.ts`: controlled names, aliases, categories and domains.
 - `src/lib/similarity.ts`: service abstraction and lexical implementation.
-- `scripts/`: trusted admin bootstrap and sample-data generation.
+- `scripts/`: trusted admin bootstrap.
 - `tests/`: unit and emulator integration tests.
 - `docs/`: architecture, deployment, security and verification notes.
 
@@ -226,3 +214,9 @@ Future/optional: genuine Sentence-BERT embeddings, FAISS with durable indexing a
 ## Screenshots
 
 No browser screenshots are included in this delivery. After configuring and running the app, capture your own desktop/mobile screens for your academic report; avoid including personal emails or secrets.
+
+## Current SIH taxonomy and teacher access
+
+The app uses exactly 17 SIH domains from the supplied requirements; AI/ML and IoT are technology categories, not SIH domains. See `src/lib/taxonomy.ts`. Projects with no specific keyword match receive provisional Miscellaneous. Existing legacy categories are mapped on read; ambiguous old categories are classified from project text. Cached analysis keys include the taxonomy version. Re-analyze existing projects for fresh AI results.
+
+Teachers require owner approval. Submitted (pending) projects appear in the teacher review queue; drafts remain private. The queue refreshes when the tab regains focus and has a Refresh submissions button. The account approval screen has Check approval status.

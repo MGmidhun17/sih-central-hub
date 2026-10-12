@@ -9,7 +9,6 @@
 - Secrets: Admin key, GitHub token and Gemini key are server environment variables, never public variables. Emulators are rejected when `NODE_ENV=production`.
 - Errors: expected validation/auth/state failures are explicit; internal/provider details and credentials are not returned to browsers.
 - Model output: untrusted and schema-checked. The model cannot approve projects or grant roles. Prompts instruct it to treat project descriptions as data.
-- Browser demo: not an authorization mechanism, never grants live access.
 
 ## Deletion policy
 

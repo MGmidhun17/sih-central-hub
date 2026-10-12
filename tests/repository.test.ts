@@ -4,7 +4,7 @@ import { parseGitHubUrl } from "../src/lib/github-url";
 import { chooseFiles, dependencyEvidence, fetchRepository, type RepositoryEvidence } from "../src/lib/server/github";
 import { summarizeRepository } from "../src/lib/server/repository-import";
 import { searchProjects, searchScore, projectAnalytics } from "../src/lib/discovery";
-import { demoProjects } from "../src/lib/demo";
+import { project } from "./fixtures";
 import { similarityText } from "../src/lib/similarity";
 import { projectSchema } from "../src/lib/validation";
 const sha = "a".repeat(40);
@@ -59,24 +59,24 @@ test("Missing README and failed optional files remain explicit",async()=>{
 });
 test("Missing Gemini yields valid editable details with explicit fallback label",async()=>{
   const old=process.env.GEMINI_API_KEY;delete process.env.GEMINI_API_KEY;
-  try{const r=await summarizeRepository(evidence);assert(projectSchema.safeParse(r.project).success);assert.equal(r.analysis.repository?.summaryMethod,"repository-extract");assert.equal(r.analysis.method,"dictionary");assert(r.project.description.includes("Next.js"));assert.equal(r.analysis.domain,"Smart Education & E-Learning");}
+  try{const r=await summarizeRepository(evidence);assert(projectSchema.safeParse(r.project).success);assert.equal(r.analysis.repository?.summaryMethod,"repository-extract");assert.equal(r.analysis.method,"dictionary");assert(r.project.description.includes("Next.js"));assert.equal(r.analysis.domain,"Smart Education");}
   finally{if(old!==undefined)process.env.GEMINI_API_KEY=old;}
 });
 test("Gemini summary uses fixed model endpoint, refuses invented tags and validates its output",async()=>{
   const key=process.env.GEMINI_API_KEY,model=process.env.GEMINI_MODEL;process.env.GEMINI_API_KEY="test-key";process.env.GEMINI_MODEL="test-model";
   try{
-    const request=(async(url:string|URL|Request,init?:RequestInit)=>{assert(String(url).startsWith("https://generativelanguage.googleapis.com/"));const b=JSON.parse(init?.body as string);assert(b.systemInstruction.parts[0].text.includes("UNTRUSTED DATA"));return Response.json({candidates:[{content:{parts:[{text:JSON.stringify({title:"Learning assistant",abstract:"A learning assistant that supports classroom practice.",description:"A React and Firebase learning platform for classroom practice.",technologies:["ImaginaryDB","Python"],domain:"Smart Education & E-Learning",confidence:.8,reason:"Student learning tools",keywords:["education"]})}]}}]});}) as typeof fetch;
+    const request=(async(url:string|URL|Request,init?:RequestInit)=>{assert(String(url).startsWith("https://generativelanguage.googleapis.com/"));const b=JSON.parse(init?.body as string);assert(b.systemInstruction.parts[0].text.includes("UNTRUSTED DATA"));return Response.json({candidates:[{content:{parts:[{text:JSON.stringify({title:"Learning assistant",abstract:"A learning assistant that supports classroom practice.",description:"A React and Firebase learning platform for classroom practice.",technologies:["ImaginaryDB","Python"],domain:"Smart Education",confidence:.8,reason:"Student learning tools",keywords:["education"]})}]}}]});}) as typeof fetch;
     const r=await summarizeRepository(evidence,request);assert.equal(r.analysis.method,"gemini+dictionary");assert.equal(r.project.title,"Learning assistant");assert(!r.analysis.technologies.includes("Python"));assert(!r.analysis.technologies.includes("ImaginaryDB"));
     const bad=await summarizeRepository(evidence,(async()=>Response.json({candidates:[{content:{parts:[{text:'{"title":"Invalid"}'}]}}]})) as typeof fetch);assert.equal(bad.analysis.method,"dictionary");assert(bad.analysis.notice?.includes("could not complete"));
   }finally{if(key===undefined)delete process.env.GEMINI_API_KEY;else process.env.GEMINI_API_KEY=key;if(model===undefined)delete process.env.GEMINI_MODEL;else process.env.GEMINI_MODEL=model;}
 });
 test("Smart search resolves aliases and requires all meaningful query terms",()=>{
-  const p={...demoProjects[0],title:"Campus learning",abstract:"A classroom practice tool",description:"Student lessons",techStack:["Next.js","Firebase"],sihDomain:"Smart Education & E-Learning",analysis:null};
+  const p={...project,title:"Campus learning",abstract:"A classroom practice tool",description:"Student lessons",techStack:["Next.js","Firebase"],sihDomain:"Smart Education",analysis:null};
   assert(searchScore(p,"nextjs")>0);assert(searchScore(p,"education")>0);assert.equal(searchScore(p,"nextjs unicorn"),0);
   assert.equal(searchProjects([p],new URLSearchParams({tech:"Python"})).length,0);
 });
 test("Analytics aggregates unique owners and technology counts without fabricated metrics",()=>{
-  const p={...demoProjects[0],techStack:["React","React"]};const a=projectAnalytics([p,{...p,id:"another"}]);assert.equal(a.total,2);assert.equal(a.students,1);assert.equal(a.technologies[0].value,2);assert.equal(projectAnalytics([]).total,0);
+  const p={...project,techStack:["React","React"]};const a=projectAnalytics([p,{...p,id:"another"}]);assert.equal(a.total,2);assert.equal(a.students,1);assert.equal(a.technologies[0].value,2);assert.equal(projectAnalytics([]).total,0);
 });
 test("Similarity excludes common evidence boilerplate from descriptions",()=>{
   assert.equal(similarityText({title:"Waste",abstract:"Recycle",description:"Vision\n\nRepository evidence\nTechnologies: React"}),"Waste Recycle Vision");

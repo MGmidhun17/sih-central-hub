@@ -1,6 +1,6 @@
 # Data model
 
-Application timestamps are UTC ISO-8601 strings, chosen to serialize consistently across API responses and demo fixtures. They are assigned by trusted server code. If converting them to Firestore Timestamps later, update serialization and ordered queries together.
+Application timestamps are UTC ISO-8601 strings, chosen to serialize consistently across API responses. They are assigned by trusted server code. If converting them to Firestore Timestamps later, update serialization and ordered queries together.
 
 | Collection | Key | Main fields |
 | --- | --- | --- |

@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import {
   normalizeTechnologies,
   classifyByRules,
-  DOMAINS,
 } from "../src/lib/taxonomy";
 import { similarityService } from "../src/lib/similarity";
 import {
@@ -19,11 +18,7 @@ import {
   geminiSchema,
 } from "../src/lib/validation";
 import { contentHash } from "../src/lib/server/analysis";
-import { demoProfiles } from "../src/lib/demo";
-const student = demoProfiles[0],
-  teacher = demoProfiles[1],
-  admin = demoProfiles[2],
-  pending = demoProfiles[3];
+import { student, teacher, admin, pending } from "./fixtures";
 const valid = {
   title: "Smart waste management",
   abstract: "Classifies waste images to improve campus recycling.",
@@ -51,12 +46,12 @@ test("technology boundaries do not confuse Java/JavaScript or C/C++", () => {
   assert(!n.technologies.includes("Java"));
   assert(!n.technologies.includes("C"));
 });
-test("empty extraction does not invent a stack or domain", () => {
+test("empty extraction has no technologies and uses provisional Miscellaneous", () => {
   assert.equal(normalizeTechnologies("A novel idea").technologies.length, 0);
-  assert.equal(classifyByRules("A novel idea").domain, "");
+  assert.equal(classifyByRules("A novel idea").domain, "Miscellaneous");
 });
 test("domain inference uses the controlled taxonomy", () => {
-  assert.equal(classifyByRules("waste recycle pollution").domain, DOMAINS[4]);
+  assert.equal(classifyByRules("waste recycle pollution").domain, "Clean & Green Technology");
 });
 test("identical text ranks above unrelated work and remains bounded", () => {
   const projects = [
