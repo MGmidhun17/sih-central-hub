@@ -8,7 +8,7 @@ export const firebaseConfigured = !!(
 export function clientAuth() {
   if (!firebaseConfigured)
     throw new Error(
-      "Firebase is not configured. Use the demo or follow README setup.",
+      "Firebase is not configured. Contact the project owner or follow README setup.",
     );
   const app =
     getApps()[0] ??

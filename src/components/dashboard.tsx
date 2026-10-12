@@ -34,6 +34,8 @@ export function Dashboard({
     [deleting, setDeleting] = useState<Project | null>(null),
     [busy, setBusy] = useState(false);
   async function load(more = false) {
+    setError("");
+    setLoading(true);
     try {
       const base = teacher ? "projects?queue=1" : "projects?mine=1";
       const data = (await api(
@@ -53,7 +55,10 @@ export function Dashboard({
   });
   useEffect(() => {
     queueMicrotask(() => initialLoad());
-  }, [profile?.uid, profile?.approved]);
+    const onFocus = () => initialLoad();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [profile?.uid, profile?.approved, teacher, history]);
   async function remove() {
     setBusy(true);
     try {
@@ -91,6 +96,7 @@ export function Dashboard({
             : "Every project is a step forward. Here’s where yours stand."
         }
       >
+        {teacher && <button className="button secondary" disabled={loading} onClick={() => void load()}>Refresh submissions</button>}
         {!teacher && (
           <Link className="button" href="/projects/new">
             <Plus size={18} />
@@ -154,7 +160,7 @@ export function Dashboard({
                 {history
                   ? "Your review history"
                   : teacher
-                    ? "Ready for your perspective"
+                    ? "Student submissions awaiting review"
                     : "Your project collection"}
               </h2>
               <span className="badge">

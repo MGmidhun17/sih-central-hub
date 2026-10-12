@@ -32,7 +32,7 @@ export function ProjectDetail({
   id: string;
   review?: boolean;
 }) {
-  const { api, profile, toast, demo } = useApp();
+  const { api, profile, toast, loading: sessionLoading } = useApp();
   const [project, setProject] = useState<Project | null>(null),
     [reviews, setReviews] = useState<Review[]>([]),
     [error, setError] = useState(""),
@@ -41,6 +41,7 @@ export function ProjectDetail({
     [comments, setComments] = useState(""),
     [decision, setDecision] = useState<Review["decision"]>("approved");
   async function load() {
+    setError("");
     try {
       const result = (await api(`projects/${id}`)) as {
         project: Project;
@@ -58,8 +59,8 @@ export function ProjectDetail({
     void load();
   });
   useEffect(() => {
-    queueMicrotask(() => initialLoad());
-  }, [id, profile?.uid, demo]);
+    if (!sessionLoading) queueMicrotask(() => initialLoad());
+  }, [id, profile?.uid, profile?.approved, sessionLoading]);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -163,7 +164,7 @@ export function ProjectDetail({
                   [
                     ["githubUrl", "Source code", GitBranch],
                     ["presentationUrl", "Presentation", FileText],
-                    ["demoUrl", "Watch the demo", Play],
+                    ["demoUrl", "Watch project video", Play],
                   ] as const
                 ).map(([key, label, Icon]) =>
                   project[key] ? (

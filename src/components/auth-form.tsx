@@ -11,9 +11,9 @@ import { clientAuth, firebaseConfigured } from "@/lib/firebase/client";
 import { useApp } from "./provider";
 import { ErrorBox } from "./ui";
 import { ArrowRight, GraduationCap, BookOpen, Sparkles } from "lucide-react";
-import type { Profile, Role } from "@/lib/types";
+import type { Profile } from "@/lib/types";
 export function AuthForm({ register = false }: { register?: boolean }) {
-  const { api, refresh, enterDemo, authUser } = useApp(),
+  const { api, refresh, authUser } = useApp(),
     router = useRouter();
   const [role, setRole] = useState<"student" | "teacher">("student"),
     [busy, setBusy] = useState(false),
@@ -27,7 +27,7 @@ export function AuthForm({ register = false }: { register?: boolean }) {
     try {
       if (!firebaseConfigured)
         throw new Error(
-          "Connect Firebase to create real accounts. You can explore the demo below now.",
+          "Firebase authentication is not configured. Contact the project owner.",
         );
       const email = String(data.get("email")),
         password = String(data.get("password"));
@@ -214,24 +214,6 @@ export function AuthForm({ register = false }: { register?: boolean }) {
             {register ? "Log in" : "Sign up"}
           </Link>
         </p>
-        <div className="divider">OR EXPLORE A DEMO</div>
-        <div className="demo-buttons compact">
-          {(["student", "teacher", "admin"] as Role[]).map((r) => (
-            <button
-              key={r}
-              className="button secondary small"
-              onClick={() => {
-                enterDemo(r);
-                router.push(`/dashboard/${r}`);
-              }}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
-        <small className="muted">
-          Demo accounts use sample data, not Firebase accounts.
-        </small>
       </section>
     </main>
   );

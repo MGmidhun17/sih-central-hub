@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DOMAINS } from "./taxonomy";
 const url = z
   .string()
   .trim()
@@ -45,7 +46,7 @@ export const reviewSchema = z
   .strict();
 export const geminiSchema = z.object({
   technologies: z.array(z.string().max(80)).max(40),
-  domain: z.string().max(100),
+  domain: z.enum(DOMAINS),
   confidence: z.number().min(0).max(1),
   reason: z.string().max(500),
   keywords: z.array(z.string().max(60)).max(15),

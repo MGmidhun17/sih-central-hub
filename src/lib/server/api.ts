@@ -16,7 +16,7 @@ import {
   reviewSchema,
 } from "../validation";
 import { isAdmin, isTeacher, canReadProject, canEditProject } from "../policy";
-import { normalizeTechnologies, classifyByRules } from "../taxonomy";
+import { normalizeTechnologies, classifyByRules, currentDomain } from "../taxonomy";
 import { analyze, cacheKey } from "./analysis";
 import { z } from "zod";
 import { importRepository } from "./repository-import";
@@ -28,8 +28,12 @@ const idOK = (id: string) => {
     throw new HttpError(400, "Invalid identifier.");
   return id;
 };
-const projectFrom = (d: FirebaseFirestore.DocumentSnapshot) =>
-  ({ ...d.data(), id: d.id }) as Project;
+const projectFrom = (d: FirebaseFirestore.DocumentSnapshot) => {
+  const p = { ...d.data(), id: d.id } as Project;
+  const domain = currentDomain(p.sihDomain, `${p.title} ${p.abstract} ${p.description}`);
+  if (domain !== p.sihDomain && p.analysis) p.analysis = { ...p.analysis, domain, domainConfidence: null, reason: "Domain updated to the current 17-category SIH taxonomy. Re-analyze to refresh the suggestion." };
+  return { ...p, sihDomain: domain };
+};
 async function count(q: FirebaseFirestore.Query) {
   return (await q.count().get()).data().count;
 }

@@ -262,7 +262,7 @@ export function ProjectEditor({ id }: { id?: string }) {
                     "Presentation / document",
                     "https://drive.google.com/…",
                   ],
-                  ["demoUrl", "Demo video", "https://youtube.com/watch?v=…"],
+                  ["demoUrl", "Project video", "https://youtube.com/watch?v=…"],
                 ] as const
               ).map(([key, label, placeholder]) => (
                 <label key={key}>

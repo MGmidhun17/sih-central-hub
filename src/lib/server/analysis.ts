@@ -1,13 +1,13 @@
 import { createHash } from "node:crypto";
 import { adminServices } from "../firebase/admin";
-import { DOMAINS, normalizeTechnologies, classifyByRules } from "../taxonomy";
+import { DOMAINS, TAXONOMY_VERSION, normalizeTechnologies, classifyByRules } from "../taxonomy";
 import { tokens, similarityService, similarityText } from "../similarity";
 import { geminiSchema } from "../validation";
 import { HttpError, assertActive } from "./http";
 import type { Analysis, ProjectInput, Project } from "../types";
 export const contentHash = (p: ProjectInput) =>
   createHash("sha256")
-    .update(JSON.stringify([p.title, p.abstract, p.description, p.githubUrl]))
+    .update(JSON.stringify([TAXONOMY_VERSION, p.title, p.abstract, p.description, p.githubUrl]))
     .digest("hex");
 export const cacheKey = (uid: string, p: ProjectInput) =>
   `${uid}_${contentHash(p)}`;

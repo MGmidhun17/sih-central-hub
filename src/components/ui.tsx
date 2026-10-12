@@ -23,20 +23,12 @@ import {
   Trees,
   Lightbulb,
   BarChart3,
+  Dumbbell, Landmark, Car, Truck, Bot, MapPin, Zap, Siren, Gamepad2, Rocket,
 } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
 import { useApp } from "./provider";
 import type { Project, Role } from "@/lib/types";
-export const domainIcons = [
-  Radio,
-  Leaf,
-  Shield,
-  HeartPulse,
-  Trees,
-  GraduationCap,
-  Sparkles,
-  Radio,
-];
+export const domainIcons = [Radio, Dumbbell, Landmark, HeartPulse, Leaf, Car, Truck, Bot, Trees, MapPin, Zap, Shield, GraduationCap, Siren, Gamepad2, Lightbulb, Rocket];
 export function Logo() {
   return (
     <Link className="logo" href="/" aria-label="HackRepo home">
@@ -49,7 +41,7 @@ export function Logo() {
   );
 }
 export function Header() {
-  const { profile, demo, logout, leaveDemo } = useApp();
+  const { profile, logout } = useApp();
   const [open, setOpen] = useState(false);
   const path = usePathname();
   return (
@@ -117,15 +109,6 @@ export function Header() {
           </div>
         </div>
       </header>
-      {demo && (
-        <div className="demo-banner">
-          <span>
-            <strong>Demo workspace</strong> · Sample data saved only in this
-            browser · {profile?.role} view
-          </span>
-          <button onClick={leaveDemo}>Exit demo ↗</button>
-        </div>
-      )}
     </>
   );
 }
@@ -167,7 +150,7 @@ export function ProjectArt({
       ? "olive"
       : project.sihDomain.includes("Education")
         ? "purple"
-        : project.sihDomain.includes("Healthcare")
+        : project.sihDomain.includes("HealthTech")
           ? "rose"
           : "blue";
   return (
@@ -290,7 +273,7 @@ export function Workspace({
   role: Role;
   children: ReactNode;
 }) {
-  const { profile, loading } = useApp();
+  const { profile, loading, refresh, toast } = useApp();
   const path = usePathname(),
     router = useRouter();
   useEffect(() => {
@@ -315,6 +298,7 @@ export function Workspace({
           }
         >
           <ShieldCheck size={36} />
+          <button className="button secondary" onClick={() => void refresh().catch(e => toast((e as Error).message))}>Check approval status</button>
         </Empty>
       </main>
     );
