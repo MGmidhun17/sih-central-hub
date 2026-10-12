@@ -21,10 +21,14 @@ export const projectSchema = z
     githubUrl: url,
     presentationUrl: url,
     demoUrl: url,
+    baseProjectId: z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/).or(z.literal("")).optional(),
+    improvements: z.string().trim().max(3000).optional(),
   })
   .strict();
 export const saveSchema = projectSchema.extend({
   status: z.enum(["draft", "pending"]),
+  removeSource: z.boolean().optional(),
+  removePresentation: z.boolean().optional(),
   revision: z.number().int().min(0).optional(),
 });
 export const analysisSchema = projectSchema.extend({

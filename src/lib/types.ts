@@ -37,6 +37,7 @@ export interface Analysis {
     warnings: string[]; summaryMethod: "gemini" | "repository-extract";
   };
 }
+export interface Attachment { name: string; size: number; digest: string; chunks: number; text: string; }
 export interface Project {
   id: string;
   title: string;
@@ -57,6 +58,13 @@ export interface Project {
   updatedAt: string;
   submittedAt: string | null;
   revision: number;
+  sourceFile?: Attachment;
+  presentationFile?: Attachment;
+  sourceFingerprint?: string;
+  duplicateKeys?: string[];
+  baseProjectId?: string;
+  baseProjectTitle?: string;
+  improvements?: string;
 }
 export interface Review {
   id: string;
@@ -69,6 +77,8 @@ export interface Review {
   createdAt: string;
 }
 export interface ProjectInput {
+  baseProjectId?: string;
+  improvements?: string;
   title: string;
   abstract: string;
   description: string;

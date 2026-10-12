@@ -32,7 +32,7 @@ export function ProjectDetail({
   id: string;
   review?: boolean;
 }) {
-  const { api, profile, toast, loading: sessionLoading } = useApp();
+  const { api, profile, toast, download, loading: sessionLoading } = useApp();
   const [project, setProject] = useState<Project | null>(null),
     [reviews, setReviews] = useState<Review[]>([]),
     [error, setError] = useState(""),
@@ -40,6 +40,10 @@ export function ProjectDetail({
     [busy, setBusy] = useState(false),
     [comments, setComments] = useState(""),
     [decision, setDecision] = useState<Review["decision"]>("approved");
+  const [versions,setVersions]=useState<{id:string;title:string;status:string;improvements:string}[]>([]);
+  const [downloading,setDownloading]=useState("");
+  async function getFile(kind:"source"|"presentation",name:string){setDownloading(kind);setError("");try{await download(`projects/${id}/files/${kind}`,name);}catch(e){setError((e as Error).message);}finally{setDownloading("");}}
+
   async function load() {
     setError("");
     try {
@@ -49,6 +53,7 @@ export function ProjectDetail({
       };
       setProject(result.project);
       setReviews(result.reviews);
+      const related=await api(`projects/${id}/versions`) as typeof versions;setVersions(related);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -110,6 +115,9 @@ export function ProjectDetail({
               <Badge status={project.status} />
             </div>
           </div>
+          {project.baseProjectId&&<section className="version-banner panel"><span className="badge">Advanced version</span><h2>Builds on <Link href={`/projects/${project.baseProjectId}`}>{project.baseProjectTitle??"the original project"}</Link></h2><p className="preserve-lines">{project.improvements}</p><small>The original and advanced version are separate records. Improvements are reviewed by a teacher.</small></section>}
+          {(project.sourceFile||project.presentationFile)&&<section className="panel attachments-panel"><h2>Project files</h2><div className="attachment-grid">{(["source","presentation"] as const).map(kind=>{const file=kind==="source"?project.sourceFile:project.presentationFile;return file?<div className="attachment-card" key={kind}><FileText size={22}/><div><strong>{file.name}</strong><small>{kind==="source"?"Source code":"Presentation"} · {Math.ceil(file.size/1024)} KB</small></div><button className="button secondary" disabled={!!downloading} onClick={()=>void getFile(kind,file.name)}>{downloading===kind?"Downloading…":"Download"}</button></div>:null;})}</div>{project.presentationFile?.text&&<details className="slide-preview"><summary>Read presentation slide text</summary><p className="preserve-lines">{project.presentationFile.text}</p></details>}</section>}
+          {versions.length>0&&<section className="panel"><h2>Advanced versions</h2>{versions.map(v=><div className="version-row" key={v.id}><Link href={`/projects/${v.id}`}>{v.title}<ArrowUpRight size={16}/></Link><Badge status={v.status}/><p>{v.improvements}</p></div>)}</section>}
           <div className="detail-grid">
             <div>
               <ProjectArt project={project} large />

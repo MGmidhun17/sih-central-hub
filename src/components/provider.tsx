@@ -21,6 +21,7 @@ interface Context {
   loading: boolean;
   notice: string;
   api: API;
+  download: (path: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   toast: (s: string) => void;
@@ -45,16 +46,23 @@ export function Provider({ children }: { children: ReactNode }) {
       method: options.method ?? "GET",
       cache: "no-store",
       headers: {
-        "Content-Type": "application/json",
+        ...(options.body instanceof FormData ? {} : {"Content-Type": "application/json"}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body:
-        options.body === undefined ? undefined : JSON.stringify(options.body),
+        options.body === undefined ? undefined : options.body instanceof FormData ? options.body : JSON.stringify(options.body),
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error ?? "Request failed.");
     return result;
   }, []);
+  const download = async (path:string,name:string) => {
+    if(firebaseConfigured)await clientAuth().authStateReady();
+    const token=firebaseConfigured?await clientAuth().currentUser?.getIdToken():undefined;
+    const response=await fetch(`/api/${path}`,{headers:token?{Authorization:`Bearer ${token}`}:{},cache:"no-store"});
+    if(!response.ok){const data=await response.json();throw new Error(data.error??"Download failed.");}
+    const url=URL.createObjectURL(await response.blob()),link=document.createElement("a");link.href=url;link.download=name;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+  };
   const refresh = useCallback(async () => {
     setProfile((await liveAPI("me")) as Profile);
   }, [liveAPI]);
@@ -106,6 +114,7 @@ export function Provider({ children }: { children: ReactNode }) {
         loading,
         notice,
         api,
+        download,
         logout,
         refresh,
         toast,

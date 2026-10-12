@@ -1,3 +1,6 @@
+import { NextResponse } from "next/server";
+import { saveProject } from "./save-project";
+import { importFiles } from "./file-import";
 import { FieldPath } from "firebase-admin/firestore";
 import { adminServices } from "../firebase/admin";
 import {
@@ -11,17 +14,16 @@ import {
 } from "./http";
 import {
   registrationSchema,
-  saveSchema,
   analysisSchema,
   reviewSchema,
 } from "../validation";
-import { isAdmin, isTeacher, canReadProject, canEditProject } from "../policy";
-import { normalizeTechnologies, classifyByRules, currentDomain } from "../taxonomy";
-import { analyze, cacheKey } from "./analysis";
+import { isAdmin, isTeacher, canReadProject } from "../policy";
+import { currentDomain } from "../taxonomy";
+import { analyze } from "./analysis";
 import { z } from "zod";
 import { importRepository } from "./repository-import";
 import { searchProjects, projectAnalytics } from "../discovery";
-import type { Profile, Project, Analysis } from "../types";
+import type { Profile, Project } from "../types";
 const now = () => new Date().toISOString();
 const idOK = (id: string) => {
   if (!/^[a-zA-Z0-9_-]{1,128}$/.test(id))
@@ -137,46 +139,23 @@ export async function dispatch(req: Request, parts: string[]) {
       nextCursor: docs.size > 100 ? selected.at(-1)?.id : null,
     });
   }
-  if (path === "projects" && method === "POST") {
-    const u = await authorize(req, "student");
-    const {
-      status,
-      revision: _revision,
-      ...p
-    } = saveSchema.parse(await body(req));
-    void _revision;
-    const ref = db.collection("projects").doc();
-    const cached = await db
-      .collection("analysisCache")
-      .doc(cacheKey(u.uid, p))
-      .get();
-    const analysis = (cached.data()?.result ?? null) as Analysis | null;
-    const n = normalizeTechnologies(
-        `${p.title} ${p.abstract} ${p.description}`,
-      ),
-      d = classifyByRules(`${p.title} ${p.abstract} ${p.description}`);
-    const time = now();
-    const data: Project = {
-      ...p,
-      id: ref.id,
-      studentId: u.uid,
-      studentName: u.name,
-      institution: u.institution,
-      status,
-      techStack: analysis?.technologies ?? n.technologies,
-      techCategories: analysis?.technologyCategories ?? n.technologyCategories,
-      sihDomain: analysis?.domain ?? d.domain,
-      analysis,
-      createdAt: time,
-      updatedAt: time,
-      submittedAt: status === "pending" ? time : null,
-      revision: 0,
-    };
-    await db.runTransaction(async (tx) => {
-      await assertActive(tx, u.uid);
-      tx.create(ref, data);
-    });
-    return json(data, 201);
+  if (path === "ai/import-files" && method === "POST") return json(await importFiles(req, (await authorize(req,"student")).uid));
+  if (path === "projects" && method === "POST") return json(await saveProject(req, await authorize(req,"student")),201);
+  if (parts[0] === "projects" && parts[2] === "files" && parts.length === 4 && method === "GET") {
+    const id=idOK(parts[1]),kind=parts[3];if(!["source","presentation"].includes(kind))throw new HttpError(404,"File not found.");
+    const user=await optionalUser(req),doc=await db.collection("projects").doc(id).get();if(!doc.exists)throw new HttpError(404,"Project not found.");
+    const p=projectFrom(doc);if(!canReadProject(p,user,process.env.ADMIN_UID))throw new HttpError(403,"This file is private.");
+    const meta=kind==="source"?p.sourceFile:p.presentationFile;if(!meta)throw new HttpError(404,"No file attached.");
+    const chunks=await Promise.all(Array.from({length:meta.chunks},(_,i)=>db.collection("projectFiles").doc(`${id}_${kind}_${i}`).get()));
+    if(chunks.some(d=>!d.exists))throw new HttpError(404,"Attachment is unavailable.");
+    const bytes=Buffer.concat(chunks.map(d=>Buffer.from(d.data()!.bytes)));
+    return new NextResponse(new Uint8Array(bytes),{headers:{"Content-Type":"application/octet-stream","Content-Disposition":`attachment; filename*=UTF-8''${encodeURIComponent(meta.name)}`,"X-Content-Type-Options":"nosniff","Cache-Control":"private, no-store"}});
+  }
+  if (parts[0] === "projects" && parts[2] === "versions" && parts.length === 3 && method === "GET") {
+    const id=idOK(parts[1]),user=await optionalUser(req),base=await db.collection("projects").doc(id).get();
+    if(!base.exists||!canReadProject(projectFrom(base),user,process.env.ADMIN_UID))throw new HttpError(403,"Project unavailable.");
+    const versions=await db.collection("projects").where("baseProjectId","==",id).limit(100).get();
+    return json(versions.docs.map(projectFrom).filter(p=>canReadProject(p,user,process.env.ADMIN_UID)).map(p=>({id:p.id,title:p.title,status:p.status,improvements:p.improvements??""})));
   }
   if (parts[0] === "projects" && parts.length === 2) {
     const id = idOK(parts[1]),
@@ -204,46 +183,7 @@ export async function dispatch(req: Request, parts: string[]) {
         : [];
       return json({ project: internal ? p : publicProject(p), reviews });
     }
-    if (method === "PATCH") {
-      const u = await authorize(req, "student");
-      const { status, revision, ...p } = saveSchema.parse(await body(req));
-      if (revision === undefined)
-        throw new HttpError(400, "Revision is required.");
-      const cached = await db
-        .collection("analysisCache")
-        .doc(cacheKey(u.uid, p))
-        .get();
-      const a = (cached.data()?.result ?? null) as Analysis | null;
-      const n = normalizeTechnologies(
-          `${p.title} ${p.abstract} ${p.description}`,
-        ),
-        d = classifyByRules(`${p.title} ${p.abstract} ${p.description}`);
-      await db.runTransaction(async (tx) => {
-        await assertActive(tx, u.uid);
-        const s = await tx.get(ref);
-        if (!s.exists) throw new HttpError(404, "Project not found.");
-        const old = projectFrom(s);
-        if (!canEditProject(old, u))
-          throw new HttpError(
-            403,
-            "This project cannot be edited in its current state.",
-          );
-        if (old.revision !== revision)
-          throw new HttpError(409, "Project changed. Reload before editing.");
-        tx.update(ref, {
-          ...p,
-          status,
-          analysis: a,
-          techStack: a?.technologies ?? n.technologies,
-          techCategories: a?.technologyCategories ?? n.technologyCategories,
-          sihDomain: a?.domain ?? d.domain,
-          updatedAt: now(),
-          submittedAt: status === "pending" ? now() : old.submittedAt,
-          revision: revision + 1,
-        });
-      });
-      return json({ id });
-    }
+    if (method === "PATCH") return json(await saveProject(req,await authorize(req,"student"),id));
     if (method === "DELETE") {
       const u = await authorize(req, "student");
       await db.runTransaction(async (tx) => {
@@ -252,6 +192,9 @@ export async function dispatch(req: Request, parts: string[]) {
         if (!s.exists) throw new HttpError(404, "Project not found.");
         if (s.data()?.studentId !== u.uid || s.data()?.status !== "draft")
           throw new HttpError(403, "Only your own drafts can be deleted.");
+        const old=s.data() as Project;
+        for(const key of old.duplicateKeys??[])tx.delete(db.collection("projectFingerprints").doc(key));
+        for(const kind of ["source","presentation"] as const){const meta=kind==="source"?old.sourceFile:old.presentationFile;for(let i=0;i<(meta?.chunks??0);i++)tx.delete(db.collection("projectFiles").doc(`${id}_${kind}_${i}`));}
         tx.delete(ref);
       });
       return json({ ok: true });
@@ -452,6 +395,8 @@ export async function dispatch(req: Request, parts: string[]) {
         } catch (e) {
           if ((e as { code?: string }).code !== "auth/user-not-found") throw e;
         }
+        await purge(db.collection("projectFiles").where("studentId", "==", uid));
+        await purge(db.collection("projectFingerprints").where("studentId", "==", uid));
         await purge(db.collection("projects").where("studentId", "==", uid));
         await purge(db.collection("reviews").where("studentId", "==", uid));
         await purge(db.collection("reviews").where("teacherId", "==", uid));

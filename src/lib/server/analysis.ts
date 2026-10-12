@@ -7,7 +7,7 @@ import { HttpError, assertActive } from "./http";
 import type { Analysis, ProjectInput, Project } from "../types";
 export const contentHash = (p: ProjectInput) =>
   createHash("sha256")
-    .update(JSON.stringify([TAXONOMY_VERSION, p.title, p.abstract, p.description, p.githubUrl]))
+    .update(JSON.stringify([TAXONOMY_VERSION, p.title, p.abstract, p.description, p.githubUrl, p.baseProjectId ?? "", p.improvements ?? ""]))
     .digest("hex");
 export const cacheKey = (uid: string, p: ProjectInput) =>
   `${uid}_${contentHash(p)}`;

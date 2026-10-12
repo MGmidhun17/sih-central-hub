@@ -217,6 +217,7 @@ export function ProjectCard({ project: p }: { project: Project }) {
           <Link href={`/projects/${p.id}`}>{p.title}</Link>
         </h3>
         <p>{p.abstract}</p>
+        {p.baseProjectId && <span className="badge version-badge">Advanced version</span>}
         <Tags tags={p.techStack.slice(0, 3)} />
         <div className="card-footer">
           <span className="avatar tiny">{p.studentName[0]}</span>

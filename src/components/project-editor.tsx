@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useState, useEffectEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, ArrowRight, Save, Link2, CheckCircle2, Github, FileCheck2 } from "lucide-react";
+import { Sparkles, ArrowRight, Save, Link2, CheckCircle2, Github, FileCheck2, UploadCloud, FileArchive, Presentation } from "lucide-react";
 import { useApp } from "./provider";
 import { Workspace, PageTitle, ErrorBox, Tags, Loading } from "./ui";
 import { parseGitHubUrl } from "@/lib/github-url";
 import { projectSchema } from "@/lib/validation";
-import type { ProjectInput, Analysis, Project } from "@/lib/types";
+import type { ProjectInput, Analysis, Project, Attachment } from "@/lib/types";
 const blank: ProjectInput = {
   title: "",
   abstract: "",
@@ -27,9 +27,9 @@ export function AnalysisPanel({ analysis: a }: { analysis: Analysis }) {
         </span>
       </div>
       {a.repository && <div className="repository-evidence">
-        <strong><Github size={16} /> Repository inspected</strong>
-        <a href={a.repository.url} target="_blank" rel="noreferrer">{a.repository.url.replace("https://github.com/", "")}</a>
-        <small>Revision {a.repository.commit.slice(0, 8)} · {a.repository.summaryMethod === "gemini" ? "AI-generated summary" : "Extracted summary"}</small>
+        <strong><FileCheck2 size={16} /> {a.repository.url ? "Repository inspected" : "Uploaded files inspected"}</strong>
+        {a.repository.url && <a href={a.repository.url} target="_blank" rel="noreferrer">{a.repository.url.replace("https://github.com/", "")}</a>}
+        <small>{a.repository.url ? "Revision" : "File checksum"} {a.repository.commit.slice(0, 8)} · {a.repository.summaryMethod === "gemini" ? "AI-generated summary" : "Extracted summary"}</small>
         <details><summary>View evidence & limitations</summary>
           <p>Languages: {a.repository.languages.join(", ") || "Not reported"}</p>
           <ul>{a.repository.files.map(f => <li key={f}>{f}</li>)}</ul>
@@ -97,6 +97,14 @@ export function ProjectEditor({ id }: { id?: string }) {
     [busy, setBusy] = useState(""),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(!!id);
+  const [sourceMode,setSourceMode]=useState<"github"|"files">("github"),[source,setSource]=useState<File|null>(null),[presentation,setPresentation]=useState<File|null>(null),[storedSource,setStoredSource]=useState<Attachment|null>(null),[storedPresentation,setStoredPresentation]=useState<Attachment|null>(null),[removeSource,setRemoveSource]=useState(false),[removePresentation,setRemovePresentation]=useState(false),[advanced,setAdvanced]=useState(false);
+  function choose(file:File|undefined,kind:"source"|"presentation") {
+    setError("");if(file && file.size>1024*1024){setError("Each file must be 1 MB or smaller. Remove dependencies and build folders from source ZIPs.");return;}
+    if(kind==="source"){setSource(file??null);setRemoveSource(false);}else{setPresentation(file??null);setRemovePresentation(false);}setAnalysis(null);
+  }
+  const fileForm=()=>{const data=new FormData();if(source)data.set("source",source);if(presentation)data.set("presentation",presentation);return data;};
+  async function importUpload(){setError("");if(!source&&!presentation){setError("Choose a source file/ZIP or a presentation first.");return;}setBusy("files");try{const result=await api("ai/import-files",{method:"POST",body:fileForm()}) as {project:ProjectInput;analysis:Analysis};setForm(old=>({...result.project,githubUrl:old.githubUrl,presentationUrl:old.presentationUrl,demoUrl:old.demoUrl,baseProjectId:old.baseProjectId,improvements:old.improvements}));setAnalysis(result.analysis);toast("Files inspected. Review the details before submitting.");}catch(e){setError((e as Error).message);}finally{setBusy("");}}
+
   const initialLoad = useEffectEvent(() => {
     if (!id || !profile) return;
     api(`projects/${id}`)
@@ -109,7 +117,9 @@ export function ProjectEditor({ id }: { id?: string }) {
           githubUrl: p.githubUrl,
           presentationUrl: p.presentationUrl,
           demoUrl: p.demoUrl,
+          baseProjectId:p.baseProjectId??"",improvements:p.improvements??"",
         });
+        setStoredSource(p.sourceFile??null);setStoredPresentation(p.presentationFile??null);setSourceMode(p.sourceFile?"files":"github");setAdvanced(!!p.baseProjectId);
         setRevision(p.revision);
         setAnalysis(p.analysis);
       })
@@ -121,7 +131,7 @@ export function ProjectEditor({ id }: { id?: string }) {
   }, [id, profile?.uid]);
   const change = (key: keyof ProjectInput, value: string) => {
     setForm((x) => ({ ...x, [key]: value }));
-    if (["title", "abstract", "description", "githubUrl"].includes(key)) setAnalysis(null);
+    if (["title", "abstract", "description", "githubUrl", "improvements"].includes(key)) setAnalysis(null);
   };
   async function importRepo() {
     setError("");
@@ -131,7 +141,7 @@ export function ProjectEditor({ id }: { id?: string }) {
     setBusy("import");
     try {
       const result = await api("ai/import-repository", { method: "POST", body: { githubUrl: form.githubUrl, ...(id ? { excludeProjectId: id } : {}) } }) as { project: ProjectInput; analysis: Analysis };
-      setForm(old => ({ ...result.project, presentationUrl: old.presentationUrl, demoUrl: old.demoUrl }));
+      setForm(old => ({ ...result.project, presentationUrl: old.presentationUrl, demoUrl: old.demoUrl,baseProjectId:old.baseProjectId,improvements:old.improvements }));
       setAnalysis(result.analysis);
       toast("Repository inspected. Review the extracted details, then submit.");
     } catch(e) { setError((e as Error).message); }
@@ -150,7 +160,9 @@ export function ProjectEditor({ id }: { id?: string }) {
     }
     setBusy(kind);
     try {
-      if (kind === "analyze")
+      if (kind === "analyze" && (source || presentation)) {
+        const result=await api("ai/import-files",{method:"POST",body:fileForm()}) as {analysis:Analysis};setAnalysis(result.analysis);
+      } else if (kind === "analyze")
         setAnalysis(
           (await api("ai/analyze", {
             method: "POST",
@@ -158,9 +170,11 @@ export function ProjectEditor({ id }: { id?: string }) {
           })) as Analysis,
         );
       else {
+        const payload={ ...parsed.data, status: kind, removeSource,removePresentation,...(id ? { revision } : {}) };
+        const data=fileForm();data.set("payload",JSON.stringify(payload));
         const p = (await api(id ? `projects/${id}` : "projects", {
           method: id ? "PATCH" : "POST",
-          body: { ...parsed.data, status: kind, ...(id ? { revision } : {}) },
+          body: source||presentation ? data : payload,
         })) as { id: string };
         toast(
           kind === "draft"
@@ -180,25 +194,26 @@ export function ProjectEditor({ id }: { id?: string }) {
       <PageTitle
         eyebrow="TURN YOUR WORK INTO SHARED KNOWLEDGE"
         title={id ? "Edit your project" : "Submit your project"}
-        description="One GitHub link. Your project, automatically organized."
+        description="Submit a GitHub repository, source file, or ZIP. Add a presentation if you have one."
       />
       {loading ? (
         <Loading />
       ) : (
         <>
         <div className="submission-steps" aria-label="Submission workflow">
-          <span className="active"><b>1</b> GitHub repository</span><span className={analysis ? "active" : ""}><b>2</b> Review analysis</span><span><b>3</b> Teacher approval</span>
+          <span className="active"><b>1</b> Choose source</span><span className={analysis ? "active" : ""}><b>2</b> Review analysis</span><span><b>3</b> Teacher approval</span>
         </div>
         <section className="repo-import panel">
-          <div className="repo-import-heading"><span className="github-icon"><Github size={28}/></span><div><h2>Start with your GitHub repository</h2><p>We’ll extract your project details, detect technologies, suggest an SIH domain, and check similar work.</p></div></div>
-          <form onSubmit={e => { e.preventDefault(); void importRepo(); }} className="repo-import-form">
-            <label htmlFor="repo-url">Public GitHub repository URL
-              <input id="repo-url" type="url" required value={form.githubUrl} disabled={!!busy} onChange={e=>change("githubUrl", e.target.value)} placeholder="https://github.com/your-name/your-project" />
-            </label>
-            <button className="button" disabled={!!busy}><Sparkles size={18}/>{busy === "import" ? "Reading repository & analyzing…" : "Import & analyze"}</button>
-          </form>
-          <small>Public repositories only. Analysis reads documentation and dependency files; it does not run your code. Importing replaces the details below.</small>
-          {busy === "import" && <p role="status" className="import-progress">Reading GitHub → extracting details → classifying → checking similarity. This may take up to a minute.</p>}
+          <div className="repo-import-heading"><span className="github-icon"><Github size={28}/></span><div><h2>Add your project source</h2><p>We’ll extract your project details, detect technologies, suggest an SIH domain, and check similar work.</p></div></div>
+          <div className="source-options" role="group" aria-label="Project source type">
+            <button type="button" disabled={!!busy} aria-pressed={sourceMode==="github"} onClick={()=>{setSourceMode("github");setSource(null);setRemoveSource(true);}}><Github size={20}/>GitHub repository</button>
+            <button type="button" disabled={!!busy} aria-pressed={sourceMode==="files"} onClick={()=>{setSourceMode("files");change("githubUrl","");}}><UploadCloud size={20}/>Source file / ZIP</button>
+          </div>
+          {sourceMode==="github" ? <form onSubmit={e=>{e.preventDefault();void importRepo();}} className="repo-import-form">
+            <label htmlFor="repo-url">Public GitHub repository URL<input id="repo-url" type="url" required value={form.githubUrl} disabled={!!busy} onChange={e=>change("githubUrl",e.target.value)} placeholder="https://github.com/your-name/your-project"/></label>
+            <button className="button" disabled={!!busy}><Sparkles size={18}/>{busy==="import"?"Reading repository…":"Import & analyze"}</button>
+          </form> : <div className="upload-box"><FileArchive size={28}/><label htmlFor="source-file">Source code or ZIP archive<input id="source-file" type="file" disabled={!!busy} accept=".zip,.txt,.md,.py,.js,.jsx,.ts,.tsx,.java,.c,.cpp,.h,.cs,.go,.rs,.php,.rb,.swift,.kt,.dart,.html,.css,.json,.yaml,.yml,.toml,.xml,.sql,.ipynb,.r" onChange={e=>choose(e.target.files?.[0],"source")}/></label><p>Up to 1 MB. ZIP: at most 500 files and 8 MB expanded. Exclude dependencies, generated files, and credentials.</p>{storedSource&&!removeSource&&!source&&<p>Saved source: <strong>{storedSource.name}</strong></p>}<button type="button" className="button" disabled={!!busy||!source} onClick={()=>void importUpload()}>{busy==="files"?"Reading files…":"Import & analyze files"}<Sparkles size={18}/></button></div>}
+          <small>Source files are never executed. Identical uploads/repository revisions are blocked when saving. Similar projects are reviewed rather than automatically rejected.</small>
           <ErrorBox message={error}/>
         </section>
         <div className="editor-grid">
@@ -251,6 +266,11 @@ export function ProjectEditor({ id }: { id?: string }) {
                   placeholder="Explain how it works. Name the technologies you actually use so we can tag them accurately."
                 />
               </label>
+              <section className="version-fields">
+                <label className="checkbox-field"><input type="checkbox" checked={advanced} onChange={e=>{setAdvanced(e.target.checked);if(!e.target.checked)setForm(x=>({...x,baseProjectId:"",improvements:""}));}}/>This is an advanced version of an existing project</label>
+                {advanced&&<><label>Original approved project link or ID<input required value={form.baseProjectId??""} onChange={e=>change("baseProjectId",e.target.value.trim().split("/").filter(Boolean).pop()??"")} placeholder="Paste the original project's link or ID"/></label><label>What is improved? *<textarea required minLength={40} maxLength={3000} value={form.improvements??""} onChange={e=>change("improvements",e.target.value)} placeholder="Explain the new model, capabilities, or evaluation improvements. Both versions will remain separate."/></label></>}
+              </section>
+              <section className="upload-box presentation-upload"><Presentation size={24}/><label htmlFor="presentation-file">PowerPoint presentation (optional)<input id="presentation-file" type="file" accept=".ppt,.pptx" onChange={e=>choose(e.target.files?.[0],"presentation")}/></label><p>Up to 1 MB. PPTX slide text is included in classification when you save. PPT files can be downloaded for review.</p>{storedPresentation&&!removePresentation&&!presentation&&<p>Saved presentation: <strong>{storedPresentation.name}</strong></p>}{(presentation||storedPresentation&&!removePresentation)&&<button type="button" className="text-link" onClick={()=>{setPresentation(null);setRemovePresentation(true);}}>Remove presentation</button>}</section>
               <div className="form-section-title">
                 <Link2 size={17} />
                 <h3>Bring your work to life</h3>
@@ -259,7 +279,7 @@ export function ProjectEditor({ id }: { id?: string }) {
                 [
                   [
                     "presentationUrl",
-                    "Presentation / document",
+                    "Presentation / document link (optional)",
                     "https://drive.google.com/…",
                   ],
                   ["demoUrl", "Project video", "https://youtube.com/watch?v=…"],
@@ -276,8 +296,7 @@ export function ProjectEditor({ id }: { id?: string }) {
                 </label>
               ))}
               <small className="muted">
-                Use shareable HTTPS links. Files stay with your original
-                provider.
+                Links are optional. Uploaded files are saved with the project only after duplicate checks pass.
               </small>
               <div className="form-actions">
                 <button
