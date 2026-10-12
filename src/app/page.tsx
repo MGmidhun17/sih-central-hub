@@ -14,8 +14,8 @@ export default function Home(){
   useEffect(()=>{load();},[]);
   return <main>
     <section className="landing-hero"><div className="container hero">
-      <div className="hero-copy"><div className="eyebrow"><span className="live-dot"/> THE HOME OF STUDENT INNOVATION</div>
-        <h1>Discover.<br/>Build.<br/><em>Innovate.</em></h1>
+      <div className="hero-copy"><div className="eyebrow"><span className="live-dot"/> CONNECTING STUDENT INNOVATION</div>
+        <h1>Great ideas.<br/><em>Shared possibilities.</em></h1>
         <p>A centralized repository of student hackathon projects. Turn a GitHub link into a project profile with automated technology tags and SIH domain alignment.</p>
         <div className="hero-actions"><Link className="button" href="/projects">Explore projects <ArrowRight size={17}/></Link><Link className="button secondary" href="/projects/new"><Github size={18}/> Submit repository</Link></div>
         <div className="hero-trust"><CheckCircle2 size={16}/> Teacher-reviewed projects <span>•</span> Built for students</div>
