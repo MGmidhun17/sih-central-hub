@@ -8,8 +8,8 @@ export default function Domains() {
     <main className="container section">
       <PageTitle
         eyebrow="FIND YOUR FIELD OF INNOVATION"
-        title="SIH domains"
-        description="Explore our SIH-aligned domain taxonomy. These are repository categories, not an official SIH endorsement."
+        title="SIH (Smart India Hackathon) domains"
+        description="Explore projects across all 17 SIH domains. Technologies are classified separately by their role in the technical stack."
       />
       <div className="domain-grid">
         {DOMAINS.map((d, i) => {
@@ -21,7 +21,7 @@ export default function Domains() {
               href={`/projects?domain=${encodeURIComponent(d)}`}
             >
               <Icon size={30} />
-              <span>0{i + 1}</span>
+              <span>{String(i + 1).padStart(2, "0")}</span>
               <h2>{d}</h2>
               <p>Discover student ideas in this domain</p>
               <ArrowUpRight size={21} />
