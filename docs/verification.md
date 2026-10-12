@@ -32,3 +32,9 @@ Remaining acceptance check: deploy, approve a real teacher, submit a real studen
 ## Professional UI refresh
 
 Production build and TypeScript passed for the larger-font responsive UI update. The existing 29-test result above applies to the preceding functional update; tests were not rerun for this presentation-only change. No external font downloads or new dependencies were introduced. Browser screenshots, touch interactions, 200% zoom, and mobile overflow still need visual verification after deployment.
+
+## Skillpath-inspired redesign
+
+The reference site's public HTML and CSS were inspected to identify its light/purple palette, Inter typeface and dashboard layout. New HackRepo UI code implements those design cues; it does not claim a pixel-exact match. Public reference: https://skillpath-sable.vercel.app/
+
+Changed shared navigation, dashboard statistics, teacher/student next-step guidance, empty queue actions, and the landing theme. Self-hosted Inter regular, semibold and bold files were validated as TrueType fonts; the OFL license is included. Production build and TypeScript passed. Browser rendering was not verified because the supported browser QA capability was unavailable. Existing function tests were not repeated for this UI-only change.

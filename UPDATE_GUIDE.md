@@ -1,14 +1,25 @@
-# Professional UI update — larger text and mobile layouts
+# Skillpath-inspired HackRepo redesign
 
-If your repository already contains the latest SIH 17-domain version, replace these three files at their existing paths using GitHub’s browser editor:
+This version changes the dashboard layout, navigation, typography, statistics, empty states and public landing style. It includes locally hosted Inter fonts and their OFL license. No external font request is required when a visitor opens the website.
 
-1. `src/app/layout.tsx`
-2. `src/app/professional.css` (new file)
-3. `src/components/ui.tsx`
+## Update without terminal commands
 
-Commit the changes together and wait for Vercel to finish deploying. Keep all existing environment variables. Do not paste CSS into globals.css; the layout imports the new stylesheet after it. If you have an older version, use the full-folder update below.
+For the most reliable update, use GitHub Desktop and replace the contents of your existing repository with the complete contents of the ZIP's `hackrepo` folder, as explained below. Commit and push to the branch connected to Vercel; wait for Ready.
 
-The body uses a system sans-serif font at 16px, most supporting text at 13–16px, and larger headings. Controls have 44–48px minimum touch targets. Navigation collapses below 1000px. Dashboard navigation scrolls horizontally on tablets/phones. Content grids collapse to a single column on phones, forms stack, and tables scroll inside their own panels. Keyboard focus indicators and mobile menu expanded-state labels are included. The production build is checked; visual browser QA was unavailable, so verify at phone and desktop widths after deployment.
+If the latest SIH version is already deployed and you prefer GitHub's browser editor, update all these files together:
+
+- `src/app/layout.tsx`
+- `src/app/professional.css`
+- `src/app/page.tsx`
+- `src/components/ui.tsx`
+- `src/components/dashboard.tsx`
+- The entire `public/fonts` folder (three font files and `OFL.txt`).
+
+Use Add file → Upload files for the font files in `public/fonts`. Keep existing Firebase and Vercel environment variables. After the new deployment is Ready, refresh the website. If old styling remains, use Ctrl+Shift+R once.
+
+The desktop workspace has a fixed sidebar and compact account/search top bar. On smaller screens the sidebar becomes a horizontal navigation strip. Teacher dashboards show actual pending and completed review counts, a useful next-step panel, and a compact empty queue. A clear queue means no pending submissions, not missing completed reviews; use My reviews or Explore approved projects.
+
+Browser visual QA was unavailable. The production build and TypeScript compilation are checked. Verify desktop and mobile layouts after deployment. No live deployment was modified here.
 
 # Update your existing HackRepo deployment
 
