@@ -238,3 +238,7 @@ To submit an advanced model, select “advanced version,” enter the approved o
 ## Google sign-in
 
 The login and signup forms support Google popup authentication through the existing Firebase project. Enable the Google provider and authorize the deployed domain as described in `GOOGLE_SIGN_IN_SETUP.md`. New users complete name, institution and role; existing roles and approval state remain unchanged. Teachers still require owner approval. Admin access still requires the configured UID and server-side admin role. Email/password remains supported.
+
+## Member-only browsing update
+
+As of 14 October 2026, project browsing, details, attachments and analytics require sign-in. Earlier references to “public approved projects” mean the approved member-visible collection in this release. Visitors see the landing page and authentication forms. Logout returns to the landing page. Exact duplicates are blocked with a permission-checked link to the original. See `UPDATE_GUIDE.md`.

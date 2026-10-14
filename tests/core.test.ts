@@ -112,8 +112,9 @@ test("edit policy rejects ownership/status escalation", () => {
   assert(!canEditProject({ status: "draft", studentId: "other" }, student));
   assert(!canEditProject({ status: "draft", studentId: teacher.uid }, teacher));
 });
-test("approved projects are public; pending projects are not", () => {
-  assert(canReadProject({ status: "approved", studentId: "x" }, null));
+test("approved projects require a member; pending projects remain restricted", () => {
+  assert(!canReadProject({ status: "approved", studentId: "x" }, null));
+  assert(canReadProject({ status: "approved", studentId: "x" }, student));
   assert(!canReadProject({ status: "pending", studentId: "x" }, null));
   assert(canReadProject({ status: "pending", studentId: "x" }, teacher));
   assert(!canReadProject({ status: "pending", studentId: "x" }, pending));

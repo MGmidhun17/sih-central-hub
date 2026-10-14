@@ -1,4 +1,27 @@
-# Update: screenshot alignment fixes and Google sign-in
+# Update: duplicate links, sign-in-only projects and navigation
+
+## What changed on 14 October 2026
+
+- Exact duplicates show “This project already exists” and a link to the earlier project when the current user has permission to view it. Another student's private draft is not disclosed.
+- GitHub import checks an existing repository revision; source-file import checks an identical source fingerprint. Saving still repeats the atomic check, so two simultaneous saves cannot store duplicates.
+- Changed source/revisions can still be linked as advanced versions. A similarity percentage alone is not an exact-duplicate verdict.
+- Logout clears the session and returns to `/` with a full page navigation.
+- Visitors see the landing page without project cards, repository search or project statistics. Project pages, details, downloads, versions and analytics require authentication on the server; protected pages direct visitors to login.
+- Login is highlighted only on `/login`; Sign up only on `/register`. The signup arrow is removed. The navigation menu icon is hidden on desktop and retained where needed on narrow screens.
+
+## Update without terminal commands
+
+1. Extract this ZIP and copy the contents of `hackrepo` into your GitHub Desktop checkout, replacing existing files. This includes new files under `src/components` and `src/lib/server`.
+2. Commit and Push origin using GitHub Desktop.
+3. Wait for Vercel to show Ready for that commit. No new environment variables or Firebase rules are required.
+4. Verify signed-out access with a private browser: `/projects`, a known project URL and `/analytics` must lead to login. The landing page must not show real projects.
+5. Sign in, import a previously submitted repository revision, and confirm the duplicate message opens the original. Repeat with the same source file/ZIP. No extra record should be saved.
+6. Log out from project details or a dashboard: the browser must return to the landing page.
+7. Open Login and Sign up: only the current navigation item should be colored.
+
+Google provider settings are still documented in `GOOGLE_SIGN_IN_SETUP.md`. Existing uploads, optional presentations and linked advanced versions are retained.
+
+## Previous release details
 
 This update changes both frontend and backend. Replace the complete project contents, not just CSS. No new environment variables or Firebase Storage setup are required. Existing Vercel/Firebase credentials remain in their dashboards.
 

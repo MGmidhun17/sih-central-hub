@@ -27,3 +27,7 @@ This prototype is not a complete enterprise abuse prevention system. Public repo
 A permanent `deletedUsers/{uid}` marker contains only a deletion timestamp, not the deleted name/email. Registration checks this marker transactionally to prevent an in-flight, previously verified registration from recreating a profile after deletion. Do not remove these markers when cleaning application data.
 
 File uploads are authenticated student operations. Multipart size, file size, ZIP member count, expanded size, integrity, paths and encryption/compression are validated. Files are processed in memory and never executed or extracted to disk. Download authorization mirrors project visibility, with no-store, attachment and nosniff headers. Atomic fingerprint claims stop duplicate concurrent saves. File documents and claims are cleaned up during draft and account deletion.
+
+## Membership requirement (14 October 2026)
+
+Project APIs now require an authenticated, active application profile, including approved project search, list, details, related versions and attachment downloads. Analytics also requires membership. The landing page does not fetch project data for visitors. Project visibility rules further restrict drafts/pending records. Duplicate responses contain an existing project's ID/title/status only if canReadProject permits that member to see it. Anonymous callers get 401 before project reads.

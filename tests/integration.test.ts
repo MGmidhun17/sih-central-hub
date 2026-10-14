@@ -141,10 +141,15 @@ test(
         const saved = await call("projects", "POST", s.idToken, {...imported.data.project,status:"draft"});
         assert.equal(saved.status,201);
         assert.equal(saved.data.analysis.repository.commit,sha);
-        const search = await call("projects/search?q=learning");
+        const repeated=await call("ai/import-repository","POST",s.idToken,{githubUrl:"https://github.com/example/project"});
+        assert.equal(repeated.status,409);assert.equal(repeated.data.existingProject.id,saved.data.id);
+        const privateRepeat=await call("ai/import-repository","POST",other.idToken,{githubUrl:"https://github.com/example/project"});
+        assert.equal(privateRepeat.status,409);assert.equal(privateRepeat.data.existingProject,undefined);
+        const ownEdit=await call("ai/import-repository","POST",s.idToken,{githubUrl:"https://github.com/example/project",excludeProjectId:saved.data.id});assert.equal(ownEdit.status,200);
+        const search = await call("projects/search?q=learning", "GET", other.idToken);
         assert.equal(search.status,200);
         assert(!search.data.items.some((p:{id:string})=>p.id===saved.data.id));
-        const counts = await call("analytics");
+        const counts = await call("analytics", "GET", other.idToken);
         assert.equal(counts.status,200);
         assert.equal(counts.data.total,0);
       } finally {globalThis.fetch=originalFetch;}
@@ -171,7 +176,7 @@ test(
         for (const token of [undefined, other.idToken, teacher.idToken])
           assert.equal(
             (await call(`projects/${id}`, "GET", token)).status,
-            403,
+            token ? 403 : 401,
           );
       },
     );
@@ -317,23 +322,28 @@ test(
           ).status,
           200,
         );
-        const p = await call(`projects/${id}`);
+        const p = await call(`projects/${id}`, "GET", other.idToken);
         assert.equal(p.status, 200);
         assert.equal(p.data.project.analysis, null);
         assert.deepEqual(p.data.reviews, []);
         assert(
-          (await call("projects")).data.items.some(
+          (await call("projects", "GET", other.idToken)).data.items.some(
             (p: { id: string }) => p.id === id,
           ),
         );
       },
     );
+    await t.test("anonymous users cannot read project lists, details, versions, files or analytics", async()=>{
+      for(const path of ["projects","projects/search",`projects/${id}`,`projects/${id}/versions`,`projects/${id}/files/source`,"analytics"]){
+        const result=await call(path);assert.equal(result.status,401,path);assert.equal(result.data.project,undefined);assert.equal(result.data.items,undefined);
+      }
+    });
     await t.test("approved work is ranked in search and counted in analytics", async () => {
-      const search=await call("projects/search?q=nextjs");
+      const search=await call("projects/search?q=nextjs", "GET", other.idToken);
       assert.equal(search.status,200);
       assert(search.data.items.some((p:{id:string})=>p.id===id));
       assert(search.data.items.every((p:{analysis:unknown})=>p.analysis===null));
-      const counts=await call("analytics");
+      const counts=await call("analytics", "GET", other.idToken);
       assert.equal(counts.status,200);
       assert.equal(counts.data.total,1);
       assert(counts.data.technologies.some((x:{name:string})=>x.name==="Next.js"));
@@ -347,20 +357,20 @@ test(
       const original={...input,title:"Baseline file model",abstract:"A baseline model detects recyclable waste from camera input.",description:"Python baseline for waste classification",status:"pending"};
       const basic=await upload("print('basic model')",original,true);assert.equal(basic.status,201);
       const before=(await db.collection("projects").count().get()).data().count;
-      const duplicate=await upload("print('basic model')",{...original,title:"Renamed identical project"});assert.equal(duplicate.status,409);
+      const duplicate=await upload("print('basic model')",{...original,title:"Renamed identical project"});assert.equal(duplicate.status,409);assert.equal(duplicate.data.code,"DUPLICATE_PROJECT");assert.equal(duplicate.data.existingProject.id,basic.data.id);
       assert.equal((await db.collection("projects").count().get()).data().count,before);
       const fileCount=(await db.collection("projectFiles").where("projectId","==",basic.data.id).get()).size;assert.equal(fileCount,2);
       const get=async(token?:string)=>handled(()=>dispatch(new Request(`http://localhost/api/projects/${basic.data.id}/files/source`,{headers:token?{Authorization:`Bearer ${token}`}:{}}),["projects",basic.data.id,"files","source"]));
-      assert.equal((await get()).status,403);assert.equal((await get(other.idToken)).status,403);
+      assert.equal((await get()).status,401);assert.equal((await get(other.idToken)).status,403);
       const readable=await get(teacher.idToken);assert.equal(readable.status,200);assert.equal(await readable.text(),"print('basic model')");
       assert.equal((await call(`projects/${basic.data.id}/review`,"POST",teacher.idToken,{decision:"approved",comments:"Source reviewed and baseline model approved.",revision:0})).status,200);
-      assert.equal((await get()).status,200);
+      assert.equal((await get()).status,401);assert.equal((await get(other.idToken)).status,200);
       const upgrade=await upload("print('advanced model with improved classifier')",{...original,title:"Advanced file model",baseProjectId:basic.data.id,improvements:"Adds an improved classifier with additional evaluation and new model capabilities."});assert.equal(upgrade.status,201);
       assert.equal((await db.collection("projects").doc(basic.data.id).get()).data()?.title,original.title);
       const internal=await call(`projects/${basic.data.id}/versions`,"GET",teacher.idToken);assert(internal.data.some((v:{id:string})=>v.id===upgrade.data.id));
-      const external=await call(`projects/${basic.data.id}/versions`);assert.equal(external.data.length,0);
+      const external=await call(`projects/${basic.data.id}/versions`, "GET", other.idToken);assert.equal(external.data.length,0);
       assert.equal((await call(`projects/${upgrade.data.id}/review`,"POST",teacher.idToken,{decision:"approved",comments:"Improved source inspected and approved as a separate version.",revision:0})).status,200);
-      assert.equal((await call(`projects/${basic.data.id}/versions`)).data.length,1);
+      assert.equal((await call(`projects/${basic.data.id}/versions`, "GET", other.idToken)).data.length,1);
       const draft=await upload("print('discarded draft')",{...original,title:"Temporary draft upload",status:"draft"});assert.equal(draft.status,201);
       assert.equal((await call(`projects/${draft.data.id}`,"DELETE",s.idToken)).status,200);
       assert((await db.collection("projectFiles").where("projectId","==",draft.data.id).get()).empty);
