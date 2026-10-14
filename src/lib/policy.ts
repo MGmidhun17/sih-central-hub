@@ -13,7 +13,7 @@ export function canReadProject(
   adminUid?: string,
 ) {
   return (
-    p.status === "approved" ||
+    (!!u && !u.deleting && p.status === "approved") ||
     !!(
       u &&
       !u.deleting &&

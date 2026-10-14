@@ -1,7 +1,7 @@
 import type { Profile } from "./types";
 
 export class APIError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  constructor(public status: number, message: string, public details?: {code?:string;existingProject?:{id:string;title:string;status:string}}) { super(message); }
 }
 
 // Only an authenticated account with no application profile needs onboarding.

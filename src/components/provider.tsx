@@ -23,7 +23,7 @@ interface Context {
   notice: string;
   api: API;
   download: (path: string, name: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: (redirect?: boolean) => Promise<void>;
   refresh: () => Promise<void>;
   toast: (s: string) => void;
 }
@@ -54,7 +54,7 @@ export function Provider({ children }: { children: ReactNode }) {
         options.body === undefined ? undefined : options.body instanceof FormData ? options.body : JSON.stringify(options.body),
     });
     const result = await response.json();
-    if (!response.ok) throw new APIError(response.status, result.error ?? "Request failed.");
+    if (!response.ok) throw new APIError(response.status, result.error ?? "Request failed.", result);
     return result;
   }, []);
   const download = async (path:string,name:string) => {
@@ -103,9 +103,11 @@ export function Provider({ children }: { children: ReactNode }) {
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [refresh]);
-  const logout = async () => {
-    await signOut(clientAuth());
+  const logout = async (redirect = true) => {
     setProfile(null);
+    setAuthUser(null);
+    await signOut(clientAuth());
+    if (redirect) window.location.replace("/");
   };
   return (
     <C.Provider

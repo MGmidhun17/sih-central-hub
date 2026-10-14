@@ -123,7 +123,7 @@ export function AuthForm({ register = false }: { register?: boolean }) {
           </button>
           <div className="auth-divider"><span>or continue with email</span></div>
         </>}
-        {registering && authUser && <div className="signed-in-account"><span>Signed in as <strong>{authUser.email}</strong></span><button type="button" className="text-link" disabled={busy} onClick={async () => { try { await logout(); setNeedsProfile(false); setMessage(""); } catch (e) { setError(authErrorMessage(e)); } }}>Use another account</button></div>}
+        {registering && authUser && <div className="signed-in-account"><span>Signed in as <strong>{authUser.email}</strong></span><button type="button" className="text-link" disabled={busy} onClick={async () => { try { await logout(false); setNeedsProfile(false); setMessage(""); } catch (e) { setError(authErrorMessage(e)); } }}>Use another account</button></div>}
         <form onSubmit={submit} aria-busy={busy}>
           {registering && (
             <>

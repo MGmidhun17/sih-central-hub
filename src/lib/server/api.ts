@@ -5,7 +5,6 @@ import { FieldPath } from "firebase-admin/firestore";
 import { adminServices } from "../firebase/admin";
 import {
   authorize,
-  optionalUser,
   identity,
   body,
   json,
@@ -56,6 +55,7 @@ export async function dispatch(req: Request, parts: string[]) {
     method = req.method,
     url = new URL(req.url);
   const { db, auth } = adminServices();
+  if (method === "GET" && (parts[0] === "projects" || path === "analytics")) await authorize(req);
   if (path === "auth/register" && method === "POST") {
     const token = await identity(req);
     const input = registrationSchema.parse(await body(req));
@@ -143,7 +143,7 @@ export async function dispatch(req: Request, parts: string[]) {
   if (path === "projects" && method === "POST") return json(await saveProject(req, await authorize(req,"student")),201);
   if (parts[0] === "projects" && parts[2] === "files" && parts.length === 4 && method === "GET") {
     const id=idOK(parts[1]),kind=parts[3];if(!["source","presentation"].includes(kind))throw new HttpError(404,"File not found.");
-    const user=await optionalUser(req),doc=await db.collection("projects").doc(id).get();if(!doc.exists)throw new HttpError(404,"Project not found.");
+    const user=await authorize(req),doc=await db.collection("projects").doc(id).get();if(!doc.exists)throw new HttpError(404,"Project not found.");
     const p=projectFrom(doc);if(!canReadProject(p,user,process.env.ADMIN_UID))throw new HttpError(403,"This file is private.");
     const meta=kind==="source"?p.sourceFile:p.presentationFile;if(!meta)throw new HttpError(404,"No file attached.");
     const chunks=await Promise.all(Array.from({length:meta.chunks},(_,i)=>db.collection("projectFiles").doc(`${id}_${kind}_${i}`).get()));
@@ -152,7 +152,7 @@ export async function dispatch(req: Request, parts: string[]) {
     return new NextResponse(new Uint8Array(bytes),{headers:{"Content-Type":"application/octet-stream","Content-Disposition":`attachment; filename*=UTF-8''${encodeURIComponent(meta.name)}`,"X-Content-Type-Options":"nosniff","Cache-Control":"private, no-store"}});
   }
   if (parts[0] === "projects" && parts[2] === "versions" && parts.length === 3 && method === "GET") {
-    const id=idOK(parts[1]),user=await optionalUser(req),base=await db.collection("projects").doc(id).get();
+    const id=idOK(parts[1]),user=await authorize(req),base=await db.collection("projects").doc(id).get();
     if(!base.exists||!canReadProject(projectFrom(base),user,process.env.ADMIN_UID))throw new HttpError(403,"Project unavailable.");
     const versions=await db.collection("projects").where("baseProjectId","==",id).limit(100).get();
     return json(versions.docs.map(projectFrom).filter(p=>canReadProject(p,user,process.env.ADMIN_UID)).map(p=>({id:p.id,title:p.title,status:p.status,improvements:p.improvements??""})));
@@ -161,7 +161,7 @@ export async function dispatch(req: Request, parts: string[]) {
     const id = idOK(parts[1]),
       ref = db.collection("projects").doc(id);
     if (method === "GET") {
-      const u = await optionalUser(req);
+      const u = await authorize(req);
       const s = await ref.get();
       if (!s.exists) throw new HttpError(404, "Project not found.");
       const p = projectFrom(s);

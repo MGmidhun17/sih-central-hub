@@ -7,6 +7,7 @@ export class HttpError extends Error {
   constructor(
     public status: number,
     message: string,
+    public details?: {code:string;existingProject?:{id:string;title:string;status:string}},
   ) {
     super(message);
   }
@@ -63,7 +64,7 @@ export async function handled(fn: () => Promise<NextResponse>) {
   try {
     return await fn();
   } catch (e) {
-    if (e instanceof HttpError) return json({ error: e.message }, e.status);
+    if (e instanceof HttpError) return json({ error: e.message, ...e.details }, e.status);
     if (e instanceof ZodError)
       return json(
         {

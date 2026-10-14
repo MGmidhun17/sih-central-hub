@@ -1,5 +1,7 @@
 "use client";
-import { useEffect, useState, useEffectEvent } from "react";
+import { useEffect, useState, useEffectEvent, useRef } from "react";
+import Link from "next/link";
+import { APIError } from "@/lib/auth-flow";
 import { useRouter } from "next/navigation";
 import { Sparkles, ArrowRight, Save, Link2, CheckCircle2, Github, FileCheck2, UploadCloud, FileArchive, Presentation } from "lucide-react";
 import { useApp } from "./provider";
@@ -91,6 +93,9 @@ export function AnalysisPanel({ analysis: a }: { analysis: Analysis }) {
 export function ProjectEditor({ id }: { id?: string }) {
   const { api, profile, toast } = useApp(),
     router = useRouter();
+  const feedbackRef=useRef<HTMLDivElement>(null);
+  const [duplicate,setDuplicate]=useState<{id:string;title:string;status:string}|null>(null);
+  function showError(e:unknown){setError((e as Error).message);setDuplicate(e instanceof APIError ? e.details?.existingProject??null : null);}
   const [form, setForm] = useState<ProjectInput>(blank),
     [revision, setRevision] = useState(0),
     [analysis, setAnalysis] = useState<Analysis | null>(null),
@@ -98,12 +103,13 @@ export function ProjectEditor({ id }: { id?: string }) {
     [error, setError] = useState(""),
     [loading, setLoading] = useState(!!id);
   const [sourceMode,setSourceMode]=useState<"github"|"files">("github"),[source,setSource]=useState<File|null>(null),[presentation,setPresentation]=useState<File|null>(null),[storedSource,setStoredSource]=useState<Attachment|null>(null),[storedPresentation,setStoredPresentation]=useState<Attachment|null>(null),[removeSource,setRemoveSource]=useState(false),[removePresentation,setRemovePresentation]=useState(false),[advanced,setAdvanced]=useState(false);
+  useEffect(()=>{if(error){feedbackRef.current?.focus({preventScroll:true});feedbackRef.current?.scrollIntoView({block:"center",behavior:"smooth"});}},[error,duplicate]);
   function choose(file:File|undefined,kind:"source"|"presentation") {
-    setError("");if(file && file.size>1024*1024){setError("Each file must be 1 MB or smaller. Remove dependencies and build folders from source ZIPs.");return;}
+    setError("");setDuplicate(null);if(file && file.size>1024*1024){setError("Each file must be 1 MB or smaller. Remove dependencies and build folders from source ZIPs.");return;}
     if(kind==="source"){setSource(file??null);setRemoveSource(false);}else{setPresentation(file??null);setRemovePresentation(false);}setAnalysis(null);
   }
-  const fileForm=()=>{const data=new FormData();if(source)data.set("source",source);if(presentation)data.set("presentation",presentation);return data;};
-  async function importUpload(){setError("");if(!source&&!presentation){setError("Choose a source file/ZIP or a presentation first.");return;}setBusy("files");try{const result=await api("ai/import-files",{method:"POST",body:fileForm()}) as {project:ProjectInput;analysis:Analysis};setForm(old=>({...result.project,githubUrl:old.githubUrl,presentationUrl:old.presentationUrl,demoUrl:old.demoUrl,baseProjectId:old.baseProjectId,improvements:old.improvements}));setAnalysis(result.analysis);toast("Files inspected. Review the details before submitting.");}catch(e){setError((e as Error).message);}finally{setBusy("");}}
+  const fileForm=()=>{const data=new FormData();if(id)data.set("excludeProjectId",id);if(source)data.set("source",source);if(presentation)data.set("presentation",presentation);return data;};
+  async function importUpload(){setError("");setDuplicate(null);if(!source&&!presentation){setError("Choose a source file/ZIP or a presentation first.");return;}setBusy("files");try{const result=await api("ai/import-files",{method:"POST",body:fileForm()}) as {project:ProjectInput;analysis:Analysis};setForm(old=>({...result.project,githubUrl:old.githubUrl,presentationUrl:old.presentationUrl,demoUrl:old.demoUrl,baseProjectId:old.baseProjectId,improvements:old.improvements}));setAnalysis(result.analysis);toast("Files inspected. Review the details before submitting.");}catch(e){showError(e);}finally{setBusy("");}}
 
   const initialLoad = useEffectEvent(() => {
     if (!id || !profile) return;
@@ -134,7 +140,7 @@ export function ProjectEditor({ id }: { id?: string }) {
     if (["title", "abstract", "description", "githubUrl", "improvements"].includes(key)) setAnalysis(null);
   };
   async function importRepo() {
-    setError("");
+    setError("");setDuplicate(null);
     try { parseGitHubUrl(form.githubUrl); } catch {
       setError("Paste a public GitHub repository URL, for example https://github.com/owner/repository."); return;
     }
@@ -144,11 +150,11 @@ export function ProjectEditor({ id }: { id?: string }) {
       setForm(old => ({ ...result.project, presentationUrl: old.presentationUrl, demoUrl: old.demoUrl,baseProjectId:old.baseProjectId,improvements:old.improvements }));
       setAnalysis(result.analysis);
       toast("Repository inspected. Review the extracted details, then submit.");
-    } catch(e) { setError((e as Error).message); }
+    } catch(e) { showError(e); }
     finally { setBusy(""); }
   }
   async function action(kind: "analyze" | "draft" | "pending") {
-    setError("");
+    setError("");setDuplicate(null);
     const parsed = projectSchema.safeParse(form);
     if (!parsed.success) {
       setError(
@@ -184,7 +190,7 @@ export function ProjectEditor({ id }: { id?: string }) {
         router.push(`/projects/${p.id}`);
       }
     } catch (e) {
-      setError((e as Error).message);
+      showError(e);
     } finally {
       setBusy("");
     }
@@ -214,7 +220,7 @@ export function ProjectEditor({ id }: { id?: string }) {
             <button className="button" disabled={!!busy}><Sparkles size={18}/>{busy==="import"?"Reading repository…":"Import & analyze"}</button>
           </form> : <div className="upload-box"><FileArchive size={28}/><label htmlFor="source-file">Source code or ZIP archive<input id="source-file" type="file" disabled={!!busy} accept=".zip,.txt,.md,.py,.js,.jsx,.ts,.tsx,.java,.c,.cpp,.h,.cs,.go,.rs,.php,.rb,.swift,.kt,.dart,.html,.css,.json,.yaml,.yml,.toml,.xml,.sql,.ipynb,.r" onChange={e=>choose(e.target.files?.[0],"source")}/></label><p>Up to 1 MB. ZIP: at most 500 files and 8 MB expanded. Exclude dependencies, generated files, and credentials.</p>{storedSource&&!removeSource&&!source&&<p>Saved source: <strong>{storedSource.name}</strong></p>}<button type="button" className="button" disabled={!!busy||!source} onClick={()=>void importUpload()}>{busy==="files"?"Reading files…":"Import & analyze files"}<Sparkles size={18}/></button></div>}
           <small>Source files are never executed. Identical uploads/repository revisions are blocked when saving. Similar projects are reviewed rather than automatically rejected.</small>
-          <ErrorBox message={error}/>
+          <div ref={feedbackRef} tabIndex={-1}><ErrorBox message={error}/>{duplicate&&<div className="duplicate-result" role="status"><strong>Previously submitted project</strong><p>{duplicate.title}</p><Link className="button secondary" href={`/projects/${duplicate.id}`}>View existing project</Link></div>}</div>
         </section>
         <div className="editor-grid">
           <section className="panel">

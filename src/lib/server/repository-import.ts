@@ -1,3 +1,4 @@
+import { duplicateError } from "./duplicates";
 import { z } from "zod";
 import { fetchRepository, type RepositoryEvidence } from "./github";
 import { adminServices } from "../firebase/admin";
@@ -6,7 +7,7 @@ import { assertActive, HttpError } from "./http";
 import { DOMAINS, normalizeTechnologies, classifyByRules } from "../taxonomy";
 import { projectSchema, geminiSchema } from "../validation";
 import { tokens, similarityService, similarityText } from "../similarity";
-import type { ProjectInput, Analysis, Project } from "../types";
+import type { ProjectInput, Analysis, Project, Profile } from "../types";
 import { parseGitHubUrl } from "../github-url";
 const extractionSchema = geminiSchema.extend({ title: z.string().min(5).max(160), abstract: z.string().min(30).max(2000), description: z.string().min(30).max(8000) });
 function plain(text: string) {
@@ -60,8 +61,11 @@ export async function importRepository(uid: string, value: string, excludeProjec
   try { parseGitHubUrl(value); } catch(e) { throw new HttpError(400, (e as Error).message); }
   await reserveAnalysisBudget(uid);
   const evidence = await fetchRepository(value);
-  const result = await summarizeRepository(evidence);
   const { db } = adminServices();
+  const user=(await db.collection("users").doc(uid).get()).data() as Profile;
+  const prior=await db.collection("projects").where("githubUrl","==",evidence.url).get();
+  for(const doc of prior.docs){const p=doc.data() as Project & {repoRevision?:string};if(doc.id!==excludeProjectId&&(p.repoRevision??p.analysis?.repository?.commit)===evidence.commit)throw duplicateError({...p,id:doc.id},user);}
+  const result = await summarizeRepository(evidence);
   const s = await db.collection("projects").where("status", "==", "approved").limit(200).get();
   const projects = s.docs.filter(d => d.id !== excludeProjectId).map(d => ({ ...d.data(), id: d.id }) as Project);
   result.analysis.similarProjects = similarityService.compare(similarityText(result.project), projects);

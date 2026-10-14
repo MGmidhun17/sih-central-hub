@@ -1,3 +1,4 @@
+import { duplicateError } from "./duplicates";
 import { similarityService, similarityText } from "../similarity";
 import { adminServices } from "../firebase/admin";
 import { canEditProject } from "../policy";
@@ -53,9 +54,9 @@ export async function saveProject(req:Request,user:Profile,id?:string) {
   // Check pre-upgrade records as well as the atomic fingerprint registry.
   const legacy=await db.collection("projects").where("abstract","==",p.abstract).get();
   for(const doc of legacy.docs){if(doc.id===ref.id)continue;const other=doc.data() as Project;
-    if(contentDuplicateKey(p)===contentDuplicateKey(other)&&!fingerprint&&!repoRevision)throw new HttpError(409,"Duplicate project: these details already exist. Nothing was saved.");
+    if(contentDuplicateKey(p)===contentDuplicateKey(other)&&!fingerprint&&!repoRevision)throw duplicateError({...other,id:doc.id},user);
   }
-  if(p.githubUrl){const oldRepos=await db.collection("projects").where("githubUrl","==",p.githubUrl).get();for(const doc of oldRepos.docs){if(doc.id===ref.id)continue;const other=doc.data() as Project;if((other as Project & {repoRevision?:string}).repoRevision===repoRevision || other.analysis?.repository?.commit===repoRevision)throw new HttpError(409,"Duplicate GitHub revision. Nothing was saved; submit changed source for an advanced version.");}}
+  if(p.githubUrl){const oldRepos=await db.collection("projects").where("githubUrl","==",p.githubUrl).get();for(const doc of oldRepos.docs){if(doc.id===ref.id)continue;const other=doc.data() as Project;if((other as Project & {repoRevision?:string}).repoRevision===repoRevision || other.analysis?.repository?.commit===repoRevision)throw duplicateError({...other,id:doc.id},user);}}
   let result:Project;
   await db.runTransaction(async tx=>{
     await assertActive(tx,user.uid);
@@ -64,11 +65,11 @@ export async function saveProject(req:Request,user:Profile,id?:string) {
     if(old&&old.revision!==revision)throw new HttpError(409,"Project changed. Reload before editing.");
     let base:Project|undefined;
     if(p.baseProjectId){const b=await tx.get(db.collection("projects").doc(p.baseProjectId));base=b.data() as Project|undefined;if(!base||base.status!=="approved")throw new HttpError(400,"Choose an approved original project.");
-      if((fingerprint&&base.sourceFingerprint===fingerprint)||(repoRevision&&base.githubUrl===p.githubUrl&&((base as Project & {repoRevision?:string}).repoRevision??base.analysis?.repository?.commit)===repoRevision))throw new HttpError(409,"The advanced version has the same source as the original. Upload changed source; nothing was saved.");
+      if((fingerprint&&base.sourceFingerprint===fingerprint)||(repoRevision&&base.githubUrl===p.githubUrl&&((base as Project & {repoRevision?:string}).repoRevision??base.analysis?.repository?.commit)===repoRevision))throw duplicateError({...base,id:p.baseProjectId},user);
     }
     const claimRefs=keys.map(k=>db.collection("projectFingerprints").doc(k));
     const claims=await Promise.all(claimRefs.map(r=>tx.get(r)));
-    for(const claim of claims){const owner=claim.data()?.projectId;if(owner&&owner!==ref.id){const existing=await tx.get(db.collection("projects").doc(owner));if(existing.exists)throw new HttpError(409,"Duplicate project/source detected. Nothing was saved. A changed version must contain actual improvements.");}}
+    for(const claim of claims){const owner=claim.data()?.projectId;if(owner&&owner!==ref.id){const existing=await tx.get(db.collection("projects").doc(owner));if(existing.exists)throw duplicateError({...existing.data(),id:existing.id} as Project,user);}}
     const time=new Date().toISOString();
     result={...p,id:ref.id,status,studentId:user.uid,studentName:user.name,institution:user.institution,techStack:a?.technologies??n.technologies,techCategories:a?.technologyCategories??n.technologyCategories,sihDomain:a?.domain??d.domain,analysis:a,createdAt:old?.createdAt??time,updatedAt:time,submittedAt:status==="pending"?time:old?.submittedAt??null,revision:old?old.revision+1:0,duplicateKeys:keys,...(sourceMeta?{sourceFile:sourceMeta}:{}),...(slides?{presentationFile:slides}:{}),...(fingerprint?{sourceFingerprint:fingerprint}:{}),...(base?{baseProjectTitle:base.title}:{} )};
     tx.set(ref,{...result,...(repoRevision?{repoRevision}:{} )});

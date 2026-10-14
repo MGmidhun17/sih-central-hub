@@ -101,11 +101,11 @@ export function Header() {
               </>
             ) : (
               <>
-                <Link className="login-link" href="/login">
+                <Link className={`auth-nav-link ${path === "/login" ? "selected" : ""}`} aria-current={path === "/login" ? "page" : undefined} href="/login">
                   Log in
                 </Link>
-                <Link className="button small" href="/register">
-                  Sign up <ArrowRight size={15} />
+                <Link className={`auth-nav-link ${path === "/register" ? "selected" : ""}`} aria-current={path === "/register" ? "page" : undefined} href="/register">
+                  Sign up
                 </Link>
               </>
             )}

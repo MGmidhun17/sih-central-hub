@@ -1,15 +1,20 @@
+import { duplicateError } from "./duplicates";
 import { adminServices } from "../firebase/admin";
 import { similarityService, similarityText } from "../similarity";
-import type { Project } from "../types";
+import type { Project, Profile } from "../types";
 import { multipart } from "./file-input";
 import { reserveAnalysisBudget } from "./analysis";
 import { summarizeRepository } from "./repository-import";
 import { HttpError } from "./http";
 import { normalizeTechnologies } from "../taxonomy";
 export async function importFiles(req:Request,uid:string){
-  const {files}=await multipart(req);const file=files.source??files.presentation;
+  const {files,data}=await multipart(req);const file=files.source??files.presentation;
   if(!file)throw new HttpError(400,"Choose a source file, ZIP, or PowerPoint presentation.");
   if(!file.text)throw new HttpError(400,"This PPT can be attached for download. For automatic text analysis, save it as PPTX and upload that file.");
+  const {db}=adminServices();
+  const exclude=String(data.get("excludeProjectId")??"");
+  if(exclude){if(!/^[a-zA-Z0-9_-]{1,128}$/.test(exclude))throw new HttpError(400,"Invalid project ID.");const own=await db.collection("projects").doc(exclude).get();if(own.data()?.studentId!==uid)throw new HttpError(403,"Project does not belong to you.");}
+  if(files.source){const user=(await db.collection("users").doc(uid).get()).data() as Profile;const matches=await db.collection("projects").where("sourceFingerprint","==",files.source.fingerprint).get();for(const doc of matches.docs)if(doc.id!==exclude)throw duplicateError({...doc.data(),id:doc.id} as Project,user);}
   await reserveAnalysisBudget(uid);
   const text=[files.source?.text,files.presentation?.text].filter(Boolean).join("\n");
   const result=await summarizeRepository({url:"",name:file.name.replace(/\.[^.]+$/,""),description:"",topics:[],languages:[],commit:file.digest,files:[{path:"README.upload.md",text}],technologies:normalizeTechnologies(text).technologies,warnings:["Uploaded files inspected as text only; code was not executed. Up to 20 source files / 32,000 characters and 60 presentation slides are inspected."]});
