@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Provider } from "@/components/provider";
 import { Header, Footer } from "@/components/ui";
+import { MemberGate } from "@/components/member-gate";
 import "./globals.css";
 import "./professional.css";
 import "./interface.css";
@@ -25,7 +26,7 @@ export default function RootLayout({
             Skip to content
           </a>
           <Header />
-          <div id="main-content">{children}</div>
+          <div id="main-content"><MemberGate>{children}</MemberGate></div>
           <Footer />
         </Provider>
       </body>

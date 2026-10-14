@@ -8,10 +8,10 @@ import { ProjectCard, ErrorBox } from "@/components/ui";
 import type { Project } from "@/lib/types";
 import type { RepositoryAnalytics } from "@/lib/discovery";
 export default function Home(){
-  const {api}=useApp(),router=useRouter();
+  const {api,profile}=useApp(),router=useRouter();
   const [projects,setProjects]=useState<Project[]>([]),[stats,setStats]=useState<RepositoryAnalytics|null>(null),[query,setQuery]=useState(""),[error,setError]=useState("");
   const load=useEffectEvent(()=>{Promise.all([api("projects/search?sort=newest"),api("analytics")]).then(([p,s])=>{setProjects((p as {items:Project[]}).items.slice(0,6));setStats(s as RepositoryAnalytics);setError("");}).catch(()=>setError("The repository is temporarily unavailable. Please try again shortly."));});
-  useEffect(()=>{load();},[]);
+  useEffect(()=>{if(profile)load();},[profile]);
   return <main>
     <section className="landing-hero"><div className="container hero">
       <div className="hero-copy"><div className="eyebrow"><span className="live-dot"/> CONNECTING STUDENT INNOVATION</div>
@@ -29,7 +29,7 @@ export default function Home(){
         <div className="hero-float"><Sparkles size={19}/><span>Your code. <strong>Connected knowledge.</strong></span></div><div className="hero-code-badge"><GitBranch size={25}/></div>
       </div>
     </div></section>
-    <section className="landing-metrics container" aria-label="Approved repository statistics">
+    {profile && <><section className="landing-metrics container" aria-label="Approved repository statistics">
       {[ [stats?.total,"Approved projects"],[stats?.institutions,"Institutions"],[stats?.domains.filter(d=>d.name!=="Unclassified").length,"Domains represented"],[stats?.students,"Student contributors"] ].map(([value,label])=><div key={String(label)}><strong>{value ?? "—"}</strong><span>{label}</span></div>)}
     </section>
     {stats?.truncated && <p className="metrics-note">Counts cover up to 500 approved projects.</p>}
@@ -38,6 +38,8 @@ export default function Home(){
       <ErrorBox message={error}/><div className="project-grid">{projects.map(p=><ProjectCard key={p.id} project={p}/>)}</div>
       {!error && stats?.total===0 && <div className="empty"><FolderGit2 size={32}/><h3>Your community starts here</h3><p>Submit a repository and get a teacher’s review to publish your first project.</p><Link className="button" href="/projects/new">Submit a repository</Link></div>}
     </section>
+    </>}
+    {!profile && <section className="container section"><div className="panel"><h2>Sign in to explore student projects</h2><p>Access project details, presentations and the reviewed repository with your account.</p><Link className="button" href="/login">Log in</Link></div></section>}
     <section className="feature-section" id="how-it-works"><div className="container section"><div className="center-heading"><div className="eyebrow">ONE REPOSITORY. MORE POSSIBILITIES.</div><h2>From source code to shared knowledge</h2><p>Import a public GitHub repository, raw source file or ZIP, review the extracted details, and submit for teacher approval.</p></div>
       <div className="feature-grid">{[
         [FolderGit2,"Centralized repository","Keep approved student projects, source links, and reviews in one searchable collection."],
